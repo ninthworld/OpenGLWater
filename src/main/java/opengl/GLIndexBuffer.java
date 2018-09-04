@@ -6,7 +6,7 @@ import utils.DataFormat;
 
 import java.nio.*;
 
-public class GLIndexBuffer {
+public class GLIndexBuffer implements GLObject {
 
     private int bufferId;
 
@@ -19,6 +19,7 @@ public class GLIndexBuffer {
         this.bufferId = buffer.get();
     }
 
+    @Override
     public void dispose() {
         GL gl = GLUtils.getGL();
 

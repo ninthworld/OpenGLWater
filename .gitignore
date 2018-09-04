@@ -1,30 +1,16 @@
-syntax: glob
+# Eclipse
+.classpath
+.project
+.settings/
 
-/releases/
-/.DS_Store/
-/.metadata/
-/.project/
-/.settings/
-/.idea/
-syntax: regexp
-\.class
-\.jar
-\.iml
-\.ipr
-\.iws
-\.log
-nbactions.xml
-nbactions-*.xml
-
-*.classpath
+# Intellij
+.idea/
 *.iml
-hs_err*.log
-/submitted
+*.iws
 
-/bin/
-/out/
-/target/
+# Mac
+.DS_Store
 
-# build-tools config and log files when building client/server with Atom
-.build-tools.cson
-build-output.log
+# Maven
+log/
+target/

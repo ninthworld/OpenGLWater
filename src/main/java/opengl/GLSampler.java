@@ -7,7 +7,7 @@ import com.jogamp.opengl.GL3;
 
 import java.nio.IntBuffer;
 
-public class GLSampler {
+public class GLSampler implements GLObject {
 
     private int samplerId;
 
@@ -45,6 +45,7 @@ public class GLSampler {
         GLUtils.checkError("glSamplerParameteri");
     }
 
+    @Override
     public void dispose() {
         GL3 gl = GLUtils.getGL3();
 

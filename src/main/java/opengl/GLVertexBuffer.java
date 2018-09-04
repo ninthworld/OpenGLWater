@@ -6,7 +6,7 @@ import utils.DataFormat;
 
 import java.nio.*;
 
-public class GLVertexBuffer {
+public class GLVertexBuffer implements GLObject {
 
     private int bufferId;
     private DataFormat format;
@@ -20,6 +20,7 @@ public class GLVertexBuffer {
         this.bufferId = buffer.get();
     }
 
+    @Override
     public void dispose() {
         GL gl = GLUtils.getGL();
 

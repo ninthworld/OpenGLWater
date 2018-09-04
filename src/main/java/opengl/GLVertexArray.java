@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class GLVertexArray {
+public class GLVertexArray implements GLObject {
 
     private int vertexArrayId;
     private List<GLVertexBuffer> vertexBuffers;
@@ -25,6 +25,7 @@ public class GLVertexArray {
         this.vertexBuffers = new ArrayList<>();
     }
 
+    @Override
     public void dispose() {
         GL2 gl = GLUtils.getGL2();
 

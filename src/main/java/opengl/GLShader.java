@@ -10,7 +10,7 @@ import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GLShader {
+public class GLShader implements GLObject {
 
     private int programId;
     private Map<Integer, GLUniformBuffer> uniformBuffers;
@@ -65,6 +65,7 @@ public class GLShader {
         GLUtils.checkError("glDeleteShader");
     }
 
+    @Override
     public void dispose() {
         GL2 gl = GLUtils.getGL2();
 

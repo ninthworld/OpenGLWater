@@ -28,19 +28,14 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
     private Animator animator;
     private boolean[] keyDown;
 
+    private GLManager manager;
     private GLShader geometryShader;
     private GLShader fxShader;
     private GLVertexArray quadVAO;
-    private GLVertexBuffer quadVBO;
     private GLVertexArray geometryVAO;
-    private GLVertexBuffer geometryVBO;
     private GLIndexBuffer geometryIBO;
     private GLUniformBuffer cameraUBO;
     private GLUniformBuffer invCameraUBO;
-
-    private GLSampler sampler;
-    private GLTexture colorTexture;
-    private GLTexture depthTexture;
     private GLFrameBuffer frameBuffer;
 
     private Camera camera;
@@ -51,6 +46,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         this.canvas = new GLCanvas();
         this.animator = new Animator(this.canvas);
         this.keyDown = new boolean[256];
+        this.manager = new GLManager();
 
         this.camera = new Camera(width, height);
         this.camera.setPosition(new Vector3f(0.0f, 0.0f, -2.0f));
@@ -77,12 +73,13 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         GLUtils.checkError("glClearColor");
 
-        // Geometry
-        geometryShader = new GLShader();
-        geometryShader.init(readFile("/shader/geometry.vs.glsl"), readFile("/shader/geometry.fs.glsl"));
+        // Common
+        GLSampler sampler = manager.createSampler(GLSampler.EdgeType.WRAP, true);
 
-        geometryVBO = new GLVertexBuffer();
-        geometryVBO.setFormat(new DataFormat().add(DataFormat.DataType.FLOAT, 3));
+        // Geometry
+        geometryShader = manager.createShader(readFile("/shader/geometry.vs.glsl"), readFile("/shader/geometry.fs.glsl"));
+
+        GLVertexBuffer geometryVBO = manager.createVertexBuffer(new DataFormat().add(DataFormat.DataType.FLOAT, 3));
         geometryVBO.setData(Buffers.newDirectFloatBuffer(new float[]{
                 1.0f, 1.0f, 1.0f,
                 1.0f, 1.0f, -1.0f,
@@ -94,7 +91,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
                 -1.0f, -1.0f, -1.0f
         }));
 
-        geometryIBO = new GLIndexBuffer();
+        geometryIBO = manager.createIndexBuffer();
         geometryIBO.setData(Buffers.newDirectIntBuffer(new int[]{
                 0, 1, 4, 4, 1, 5,
                 2, 6, 3, 3, 6, 7,
@@ -104,18 +101,16 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
                 4, 5, 7, 7, 4, 6
         }));
 
-        geometryVAO = new GLVertexArray();
+        geometryVAO = manager.createVertexArray();
         geometryVAO.addVertexBuffer(geometryVBO);
 
-        cameraUBO = new GLUniformBuffer();
+        cameraUBO = manager.createUniformBuffer();
         geometryShader.addUniformBuffer(0, cameraUBO);
 
         // FX
-        fxShader = new GLShader();
-        fxShader.init(readFile("/shader/fx.vs.glsl"), readFile("/shader/fx.fs.glsl"));
+        fxShader = manager.createShader(readFile("/shader/fx.vs.glsl"), readFile("/shader/fx.fs.glsl"));
 
-        quadVBO = new GLVertexBuffer();
-        quadVBO.setFormat(new DataFormat().add(DataFormat.DataType.FLOAT, 2));
+        GLVertexBuffer quadVBO = manager.createVertexBuffer(new DataFormat().add(DataFormat.DataType.FLOAT, 2));
         quadVBO.setData(Buffers.newDirectFloatBuffer(new float[]{
                 -1.0f, -1.0f,
                 1.0f, -1.0f,
@@ -123,74 +118,30 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
                 1.0f, 1.0f
         }));
 
-        quadVAO = new GLVertexArray();
+        quadVAO = manager.createVertexArray();
         quadVAO.addVertexBuffer(quadVBO);
 
-        sampler = new GLSampler();
-        sampler.init(GLSampler.EdgeType.WRAP, true);
-
-        colorTexture = new GLTexture();
-        colorTexture.init(1280, 800, false, null);
+        GLTexture colorTexture = manager.createTexture(1280, 800, false, null);
         colorTexture.setSampler(sampler);
+        fxShader.addTexture(0, colorTexture);
 
-        depthTexture = new GLTexture();
-        depthTexture.init(1280, 800, true, null);
+        GLTexture depthTexture = manager.createTexture(1280, 800, true, null);
         depthTexture.setSampler(sampler);
+        fxShader.addTexture(1, depthTexture);
 
-        frameBuffer = new GLFrameBuffer();
+        frameBuffer = manager.createFrameBuffer();
         frameBuffer.addColorTexture(0, colorTexture);
         frameBuffer.setDepthTexture(depthTexture);
 
-        invCameraUBO = new GLUniformBuffer();
+        invCameraUBO = manager.createUniformBuffer();
         fxShader.addUniformBuffer(0, invCameraUBO);
-
-        fxShader.addTexture(0, colorTexture);
-        fxShader.addTexture(1, depthTexture);
     }
 
     @Override
     public void dispose(GLAutoDrawable glAutoDrawable) {
         GLUtils.logDebug("Dispose");
 
-        if(sampler != null) {
-            sampler.dispose();
-        }
-        if(colorTexture != null) {
-            colorTexture.dispose();
-        }
-        if(depthTexture != null) {
-            depthTexture.dispose();
-        }
-        if(frameBuffer != null) {
-            frameBuffer.dispose();
-        }
-        if(geometryVAO != null) {
-            geometryVAO.dispose();
-        }
-        if(geometryVBO != null) {
-            geometryVBO.dispose();
-        }
-        if(geometryIBO != null) {
-            geometryIBO.dispose();
-        }
-        if(quadVAO != null) {
-            quadVAO.dispose();
-        }
-        if(quadVBO != null) {
-            quadVBO.dispose();
-        }
-        if(cameraUBO != null) {
-            cameraUBO.dispose();
-        }
-        if(invCameraUBO != null) {
-            invCameraUBO.dispose();
-        }
-        if(geometryShader != null) {
-            geometryShader.dispose();
-        }
-        if(fxShader != null) {
-            fxShader.dispose();
-        }
+        manager.dispose();
     }
 
     @Override

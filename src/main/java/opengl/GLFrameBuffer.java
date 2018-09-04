@@ -8,7 +8,7 @@ import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GLFrameBuffer {
+public class GLFrameBuffer implements GLObject {
 
     private int bufferId;
     private Map<Integer, GLTexture> colorTextures;
@@ -26,6 +26,7 @@ public class GLFrameBuffer {
         this.depthTexture = null;
     }
 
+    @Override
     public void dispose() {
         GL gl = GLUtils.getGL();
 

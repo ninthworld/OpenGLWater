@@ -7,7 +7,7 @@ import utils.DataFormat;
 
 import java.nio.*;
 
-public class GLUniformBuffer {
+public class GLUniformBuffer implements GLObject {
 
     private int bufferId;
 
@@ -20,6 +20,7 @@ public class GLUniformBuffer {
         this.bufferId = buffer.get();
     }
 
+    @Override
     public void dispose() {
         GL gl = GLUtils.getGL();
 

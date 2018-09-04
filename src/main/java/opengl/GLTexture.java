@@ -7,7 +7,7 @@ import com.jogamp.opengl.GL2;
 import java.nio.Buffer;
 import java.nio.IntBuffer;
 
-public class GLTexture {
+public class GLTexture implements GLObject {
 
     private int textureId;
     private int width;
@@ -45,6 +45,7 @@ public class GLTexture {
         unbind();
     }
 
+    @Override
     public void dispose() {
         GL gl = GLUtils.getGL();
 
