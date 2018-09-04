@@ -1,0 +1,30 @@
+syntax: glob
+
+releases
+.DS_Store
+.metadata
+.project
+.settings
+.idea
+syntax: regexp
+\.class
+\.jar
+\.iml
+\.ipr
+\.iws
+\.log
+nbactions.xml
+nbactions-*.xml
+
+*.classpath
+*.iml
+hs_err*.log
+/submitted
+
+/bin/
+/out/
+/target/
+
+# build-tools config and log files when building client/server with Atom
+.build-tools.cson
+build-output.log
