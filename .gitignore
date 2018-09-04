@@ -1,11 +1,11 @@
 syntax: glob
 
-releases/
-.DS_Store/
-.metadata/
-.project/
-.settings/
-.idea/
+/releases/
+/.DS_Store/
+/.metadata/
+/.project/
+/.settings/
+/.idea/
 syntax: regexp
 \.class
 \.jar
