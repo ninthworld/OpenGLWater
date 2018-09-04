@@ -46,7 +46,7 @@ public class GLVertexBuffer {
     public void setData(Buffer data) {
         GL gl = GLUtils.getGL();
 
-        long size = data.capacity();
+        long size = data.capacity() + 2;
         if(data instanceof ShortBuffer) {
             size *= 2;
         }

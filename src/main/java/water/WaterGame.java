@@ -14,10 +14,13 @@ import utils.DataFormat;
 import javax.swing.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.WindowEvent;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
+
+import static java.awt.event.KeyEvent.VK_ESCAPE;
 
 public class WaterGame extends JFrame implements GLEventListener, KeyListener {
 
@@ -31,6 +34,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
     private GLVertexBuffer quadVBO;
     private GLVertexArray geometryVAO;
     private GLVertexBuffer geometryVBO;
+    private GLIndexBuffer geometryIBO;
     private GLUniformBuffer cameraUBO;
     private GLUniformBuffer invCameraUBO;
 
@@ -80,9 +84,24 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         geometryVBO = new GLVertexBuffer();
         geometryVBO.setFormat(new DataFormat().add(DataFormat.DataType.FLOAT, 3));
         geometryVBO.setData(Buffers.newDirectFloatBuffer(new float[]{
-                0.0f, 0.0f, 0.0f,
-                1.0f, 0.0f, 0.0f,
-                1.0f, 1.0f, 0.0f
+                1.0f, 1.0f, 1.0f,
+                1.0f, 1.0f, -1.0f,
+                1.0f, -1.0f, 1.0f,
+                1.0f, -1.0f, -1.0f,
+                -1.0f, 1.0f, 1.0f,
+                -1.0f, 1.0f, -1.0f,
+                -1.0f, -1.0f, 1.0f,
+                -1.0f, -1.0f, -1.0f
+        }));
+
+        geometryIBO = new GLIndexBuffer();
+        geometryIBO.setData(Buffers.newDirectIntBuffer(new int[]{
+                0, 1, 4, 4, 1, 5,
+                2, 6, 3, 3, 6, 7,
+                0, 4, 6, 6, 0, 2,
+                1, 5, 7, 7, 1, 3,
+                0, 1, 3, 3, 0, 2,
+                4, 5, 7, 7, 4, 6
         }));
 
         geometryVAO = new GLVertexArray();
@@ -151,6 +170,9 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         if(geometryVBO != null) {
             geometryVBO.dispose();
         }
+        if(geometryIBO != null) {
+            geometryIBO.dispose();
+        }
         if(quadVAO != null) {
             quadVAO.dispose();
         }
@@ -199,8 +221,10 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         geometryShader.bind();
         geometryVAO.bind();
 
-        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 3);
+        geometryIBO.bind();
+        gl.glDrawElements(GL.GL_TRIANGLES, 6 * 6, GL.GL_UNSIGNED_INT, 0);
         GLUtils.checkError("glDrawArrays");
+        geometryIBO.unbind();
 
         geometryVAO.unbind();
         geometryShader.unbind();
@@ -234,6 +258,9 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
+        if(key == VK_ESCAPE) {
+            this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+        }
         if(key < keyDown.length) {
             keyDown[key] = true;
         }

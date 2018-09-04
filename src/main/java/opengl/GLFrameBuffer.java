@@ -77,8 +77,6 @@ public class GLFrameBuffer {
         bind();
         gl.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D, texture.getGLTextureId(), 0);
         GLUtils.checkError("glFramebufferTexture2D");
-        gl.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_STENCIL_ATTACHMENT, GL.GL_TEXTURE_2D, texture.getGLTextureId(), 0);
-        GLUtils.checkError("glFramebufferTexture2D");
 
         GLUtils.checkFramebufferError();
         unbind();
