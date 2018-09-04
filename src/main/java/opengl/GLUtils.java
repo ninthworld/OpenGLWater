@@ -28,19 +28,34 @@ public class GLUtils {
         GL gl = getGL();
         switch (gl.glGetError()) {
             case GL.GL_INVALID_ENUM:
-                logError("Invalid enum");
+                logError("Invalid enum: " + msg);
                 break;
             case GL.GL_INVALID_VALUE:
-                logError("Invalid value");
+                logError("Invalid value: " + msg);
                 break;
             case GL.GL_INVALID_OPERATION:
-                logError("Invalid operation");
+                logError("Invalid operation: " + msg);
                 break;
             case GL.GL_INVALID_FRAMEBUFFER_OPERATION:
-                logError("Invalid framebuffer operation");
+                logError("Invalid framebuffer operation: " + msg);
                 break;
             case GL.GL_OUT_OF_MEMORY:
-                logError("Out of memory");
+                logError("Out of memory: " + msg);
+                break;
+        }
+    }
+
+    public static void checkFramebufferError() {
+        GL gl = getGL();
+        switch (gl.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)) {
+            case GL.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                logError("Framebuffer incomplete attachment");
+                break;
+            case GL.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                logError("Framebuffer incomplete/missing attachment");
+                break;
+            case GL.GL_FRAMEBUFFER_UNSUPPORTED:
+                logError("Framebuffer unsupported");
                 break;
         }
     }

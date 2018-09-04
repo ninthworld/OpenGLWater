@@ -14,6 +14,7 @@ public class GLShader {
 
     private int programId;
     private Map<Integer, GLUniformBuffer> uniformBuffers;
+    private Map<Integer, GLTexture> textures;
 
     public GLShader() {
         GL2 gl = GLUtils.getGL2();
@@ -22,6 +23,7 @@ public class GLShader {
         GLUtils.checkError("glCreateProgram");
 
         this.uniformBuffers = new HashMap<>();
+        this.textures = new HashMap<>();
     }
 
     public void init(String vertexShaderSrc, String fragmentShaderSrc) {
@@ -82,6 +84,22 @@ public class GLShader {
             gl.glBindBuffersBase(GL4.GL_UNIFORM_BUFFER, entry.getKey(), 1, new int[]{ entry.getValue().getGLBufferId() }, 0);
             GLUtils.checkError("glBindBuffersBase");
         }
+
+        int activeIndex = 0;
+        for(Map.Entry<Integer, GLTexture> entry : textures.entrySet()) {
+            gl.glActiveTexture(GL.GL_TEXTURE0 + activeIndex);
+            GLUtils.checkError("glActiveTexture");
+            entry.getValue().bind();
+            gl.glUniform1i(entry.getKey(), activeIndex);
+            // TODO: Fix texture binding spitting out invalid operation
+            // GLUtils.checkError("glUniform1i");
+            gl.glGetError();
+            if(entry.getValue().getSampler() != null) {
+                gl.glBindSampler(activeIndex, entry.getValue().getSampler().getGLSamplerId());
+                GLUtils.checkError("glBindSampler");
+            }
+            activeIndex++;
+        }
     }
 
     public void unbind() {
@@ -93,6 +111,10 @@ public class GLShader {
 
     public void addUniformBuffer(int binding, GLUniformBuffer buffer) {
         uniformBuffers.put(binding, buffer);
+    }
+
+    public void addTexture(int binding, GLTexture texture) {
+        textures.put(binding, texture);
     }
 
     private int compileShader(String shaderSrc, int shaderType) {
