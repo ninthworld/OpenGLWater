@@ -23,11 +23,10 @@ vec3 getNormal(vec2 pos);
 void main() {
 
     const float ambientCoefficent = 0.1;
-    const vec3 intensities = vec3(1.0, 1.0, 1.0);
     const float materialShininess = 8.0;
     const vec3 materialSpecularColor = vec3(1.0, 1.0, 1.0);
 
-    vec3 normal = getNormal(vs_texCoord * 64.0);
+    vec3 normal = getNormal(vs_position.xz);
     vec3 surfacePos = vs_position;
     vec3 surfaceColor = vec3(0.3, 0.5, 0.7);
     vec3 surfaceToLight = normalize(light.direction.xyz);
@@ -51,18 +50,18 @@ void main() {
     surfaceColor *= mix(vec3(1.0, 1.0, 1.0), vec3(0.05, 0.3, 0.5), depth);
 
     // Ambient
-    vec3 ambient = ambientCoefficent * surfaceColor * intensities;
+    vec3 ambient = ambientCoefficent * surfaceColor;
 
     // Diffuse
     float diffuseCoefficent = max(0.0, dot(normal, surfaceToLight));
-    vec3 diffuse = diffuseCoefficent * surfaceColor * intensities;
+    vec3 diffuse = diffuseCoefficent * surfaceColor;
 
     // Specular
     float specularCoefficient = 0.0;
     if(diffuseCoefficent > 0.0) {
         specularCoefficient = pow(max(0.0, dot(surfaceToCamera, reflect(-surfaceToLight, normal))), materialShininess);
     }
-    vec3 specular = specularCoefficient * materialSpecularColor * intensities;
+    vec3 specular = specularCoefficient * materialSpecularColor;
 
     // Linear Color
     vec3 linearColor = ambient + diffuse + specular;
@@ -73,7 +72,7 @@ void main() {
 
     // Foam
     vec3 foamColor = texture(foamTexture, surfacePos.xz / 2.0).rgb;
-    finalColor = mix(finalColor, foamColor, clamp(dot(vec3(0.0, 1.0, 0.0), normal), 0.0, 1.0));
+    //finalColor = mix(finalColor, foamColor, clamp(dot(vec3(0.0, 1.0, 0.0), normal), 0.0, 1.0));
 
     // Shore Blending
     // vec3 shoreColor = mix(texture(refractTexture, fragCoord).rgb + mix(vec3(0.0, 0.0, 0.0), texture(foamTexture, surfacePos.xz).rgb, clamp(depth * 16.0, 0.0, 1.0)), finalColor, clamp(depth * 8.0, 0.0, 1.0));
@@ -110,7 +109,7 @@ float getFractal(vec2 pos) {
 }
 
 vec3 getNormal(vec2 pos) {
-    const float o = 0.01;
+    const float o = 0.1;
     float h01 = getFractal(pos + vec2(-o, 0));
     float h21 = getFractal(pos + vec2(o, 0));
     float h10 = getFractal(pos + vec2(0, -o));

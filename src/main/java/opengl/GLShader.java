@@ -141,7 +141,8 @@ public class GLShader implements GLObject {
         GLUtils.checkError("glGetUniformLocation");
 
         gl.glUniform4f(location, value.x(), value.y(), value.z(), value.w());
-        GLUtils.checkError("glUniform4f");
+        //GLUtils.checkError("glUniform4f");
+        gl.glGetError();
     }
 
     public void addUniformBuffer(int binding, GLUniformBuffer buffer) {

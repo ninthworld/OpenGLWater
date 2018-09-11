@@ -40,7 +40,7 @@ float noise(vec2 x);
 // Inspired by Kevin Roast
 // <https://github.com/kevinroast/webglshaders/blob/master/waves3.html>
 float getFractal(vec2 pos) {
-    const int octaves = 2;
+    const int octaves = 8;
 
     float amp1 = 1.8;
     float amp2 = 0.8;
