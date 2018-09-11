@@ -39,9 +39,16 @@ public class GLManager {
         return sampler;
     }
 
+    public GLShader createShader(String vertexSrc, String geometrySrc, String fragmentSrc) {
+        GLShader shader = new GLShader();
+        shader.init(vertexSrc, geometrySrc, fragmentSrc);
+        glObjects.add(shader);
+        return shader;
+    }
+
     public GLShader createShader(String vertexSrc, String fragmentSrc) {
         GLShader shader = new GLShader();
-        shader.init(vertexSrc, fragmentSrc);
+        shader.init(vertexSrc, null, fragmentSrc);
         glObjects.add(shader);
         return shader;
     }
@@ -49,6 +56,13 @@ public class GLManager {
     public GLTexture createTexture(int width, int height, boolean isDepth, Buffer data) {
         GLTexture texture = new GLTexture();
         texture.init(width, height, isDepth, data);
+        glObjects.add(texture);
+        return texture;
+    }
+
+    public GLTextureCube createTextureCube(int width, int height, Buffer[] data) {
+        GLTextureCube texture = new GLTextureCube();
+        texture.init(width, height, data);
         glObjects.add(texture);
         return texture;
     }

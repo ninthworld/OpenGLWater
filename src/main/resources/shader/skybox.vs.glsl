@@ -1,4 +1,4 @@
-#version 420
+#version 430
 
 layout(location=0) in vec3 in_position;
 
@@ -11,5 +11,10 @@ layout(std140, binding=0) uniform Camera {
 
 void main() {
     vs_position = in_position;
-    gl_Position = camera.projMatrix * camera.viewMatrix * vec4(in_position, 1.0);
+    vs_position *= 10.0;
+
+    mat4 staticView = camera.viewMatrix;
+    staticView[3] = vec4(0.0, 0.0, 0.0, 1.0);
+
+    gl_Position = camera.projMatrix * staticView * vec4(vs_position, 1.0);
 }

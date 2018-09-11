@@ -3,7 +3,10 @@ package opengl;
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
+import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GL4;
+import org.joml.Vector4f;
+import org.joml.Vector4fc;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -26,17 +29,23 @@ public class GLShader implements GLObject {
         this.textures = new HashMap<>();
     }
 
-    public void init(String vertexShaderSrc, String fragmentShaderSrc) {
+    public void init(String vertexShaderSrc, String geometryShaderSrc, String fragmentShaderSrc) {
         GL2 gl = GLUtils.getGL2();
 
         int vertexShaderId = compileShader(vertexShaderSrc, GL2.GL_VERTEX_SHADER);
-        int fragmentShaderId = compileShader(fragmentShaderSrc, GL2.GL_FRAGMENT_SHADER);
-
         gl.glAttachShader(programId, vertexShaderId);
         GLUtils.checkError("glAttachShader");
 
+        int fragmentShaderId = compileShader(fragmentShaderSrc, GL2.GL_FRAGMENT_SHADER);
         gl.glAttachShader(programId, fragmentShaderId);
         GLUtils.checkError("glAttachShader");
+
+        int geometryShaderId = 0;
+        if(geometryShaderSrc != null) {
+            geometryShaderId = compileShader(geometryShaderSrc, GL3.GL_GEOMETRY_SHADER);
+            gl.glAttachShader(programId, geometryShaderId);
+            GLUtils.checkError("glAttachShader");
+        }
 
         gl.glLinkProgram(programId);
         GLUtils.checkError("glLinkProgram");
@@ -63,6 +72,11 @@ public class GLShader implements GLObject {
 
         gl.glDeleteShader(fragmentShaderId);
         GLUtils.checkError("glDeleteShader");
+
+        if(geometryShaderSrc != null) {
+            gl.glDeleteShader(geometryShaderId);
+            GLUtils.checkError("glDeleteShader");
+        }
     }
 
     @Override
@@ -108,6 +122,20 @@ public class GLShader implements GLObject {
 
         gl.glUseProgram(0);
         GLUtils.checkError("glUseProgram");
+    }
+
+    public void setUniform1f(int location, float value) {
+        GL2 gl = GLUtils.getGL2();
+
+        gl.glProgramUniform1f(programId, location, value);
+        GLUtils.checkError("glProgramUniform1f");
+    }
+
+    public void setUniform4f(int location, Vector4fc value) {
+        GL2 gl = GLUtils.getGL2();
+
+        gl.glProgramUniform4f(programId, location, value.x(), value.y(), value.z(), value.w());
+        GLUtils.checkError("glProgramUniform4f");
     }
 
     public void addUniformBuffer(int binding, GLUniformBuffer buffer) {

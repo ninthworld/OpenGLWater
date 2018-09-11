@@ -9,6 +9,7 @@ import java.nio.*;
 public class GLIndexBuffer implements GLObject {
 
     private int bufferId;
+    private int count;
 
     public GLIndexBuffer() {
         GL gl = GLUtils.getGL();
@@ -17,6 +18,7 @@ public class GLIndexBuffer implements GLObject {
         gl.glGenBuffers(1, buffer);
         GLUtils.checkError("glGenBuffers");
         this.bufferId = buffer.get();
+        this.count = 0;
     }
 
     @Override
@@ -61,5 +63,13 @@ public class GLIndexBuffer implements GLObject {
         gl.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, size, data, GL.GL_STATIC_DRAW);
         GLUtils.checkError("glBufferData");
         unbind();
+    }
+
+    public void setCount(int count) {
+        this.count = count;
+    }
+
+    public int getCount() {
+        return count;
     }
 }
