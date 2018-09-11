@@ -1,10 +1,10 @@
-#version 430
+#version 420
 
 in vec3 vs_position;
 
 out vec4 fs_diffuse;
 
-layout(binding=0) uniform samplerCube skyboxTexture;
+uniform samplerCube skyboxTexture;
 
 void main() {
     vec3 color = texture(skyboxTexture, vs_position).rgb;

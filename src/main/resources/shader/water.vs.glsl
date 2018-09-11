@@ -1,4 +1,4 @@
-#version 430
+#version 420
 
 layout(location=0) in vec3 in_position;
 
@@ -11,7 +11,7 @@ layout(std140, binding=0) uniform Camera {
     mat4 viewMatrix;
 } camera;
 
-layout(location=5) uniform float time;
+uniform float time;
 
 const float waterLevel = 8.0;
 

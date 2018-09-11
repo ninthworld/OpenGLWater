@@ -1,4 +1,4 @@
-#version 430
+#version 420
 
 layout(location=0) in vec3 in_position;
 
@@ -11,10 +11,10 @@ layout(std140, binding=0) uniform Camera {
     mat4 viewMatrix;
 } camera;
 
-layout(binding=0) uniform sampler2D heightMap;
-layout(binding=1) uniform sampler2D normalMap;
+uniform sampler2D heightMap;
+uniform sampler2D normalMap;
 
-layout(location=1) uniform vec4 clippingPlane;
+uniform vec4 clippingPlane;
 
 void main() {
     vs_texCoord = in_position.xz;

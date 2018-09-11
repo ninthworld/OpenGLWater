@@ -1,4 +1,4 @@
-#version 430
+#version 420
 
 in vec2 vs_texCoord;
 in vec3 vs_position;
@@ -10,13 +10,13 @@ layout(std140, binding=1) uniform Light {
     vec4 direction;
 } light;
 
-layout(binding=0) uniform sampler2D refractTexture;
-layout(binding=1) uniform sampler2D reflectTexture;
-layout(binding=2) uniform sampler2D heightMap;
-layout(binding=3) uniform sampler2D foamTexture;
+uniform sampler2D refractTexture;
+uniform sampler2D reflectTexture;
+uniform sampler2D heightMap;
+uniform sampler2D foamTexture;
 
-layout(location=4) uniform vec4 cameraPos;
-layout(location=5) uniform float time;
+uniform vec4 cameraPos;
+uniform float time;
 
 vec3 getNormal(vec2 pos);
 

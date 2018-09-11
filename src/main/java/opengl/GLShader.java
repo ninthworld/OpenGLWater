@@ -96,7 +96,7 @@ public class GLShader implements GLObject {
         GLUtils.checkError("glUseProgram");
 
         for(Map.Entry<Integer, GLUniformBuffer> entry : uniformBuffers.entrySet()) {
-            gl.glBindBuffersBase(GL4.GL_UNIFORM_BUFFER, entry.getKey(), 1, new int[]{ entry.getValue().getGLBufferId() }, 0);
+            gl.glBindBufferBase(GL4.GL_UNIFORM_BUFFER, entry.getKey(), entry.getValue().getGLBufferId());
             GLUtils.checkError("glBindBuffersBase");
         }
 
@@ -124,26 +124,37 @@ public class GLShader implements GLObject {
         GLUtils.checkError("glUseProgram");
     }
 
-    public void setUniform1f(int location, float value) {
+    public void setUniform1f(String name, float value) {
         GL2 gl = GLUtils.getGL2();
 
-        gl.glProgramUniform1f(programId, location, value);
-        GLUtils.checkError("glProgramUniform1f");
+        int location = gl.glGetUniformLocation(programId, name);
+        GLUtils.checkError("glGetUniformLocation");
+
+        gl.glUniform1f(location, value);
+        GLUtils.checkError("glUniform1f");
     }
 
-    public void setUniform4f(int location, Vector4fc value) {
+    public void setUniform4f(String name, Vector4fc value) {
         GL2 gl = GLUtils.getGL2();
 
-        gl.glProgramUniform4f(programId, location, value.x(), value.y(), value.z(), value.w());
-        GLUtils.checkError("glProgramUniform4f");
+        int location = gl.glGetUniformLocation(programId, name);
+        GLUtils.checkError("glGetUniformLocation");
+
+        gl.glUniform4f(location, value.x(), value.y(), value.z(), value.w());
+        GLUtils.checkError("glUniform4f");
     }
 
     public void addUniformBuffer(int binding, GLUniformBuffer buffer) {
         uniformBuffers.put(binding, buffer);
     }
 
-    public void addTexture(int binding, GLTexture texture) {
-        textures.put(binding, texture);
+    public void addTexture(String name, GLTexture texture) {
+        GL2 gl = GLUtils.getGL2();
+
+        int location = gl.glGetUniformLocation(programId, name);
+        GLUtils.checkError("glGetUniformLocation");
+
+        textures.put(location, texture);
     }
 
     private int compileShader(String shaderSrc, int shaderType) {

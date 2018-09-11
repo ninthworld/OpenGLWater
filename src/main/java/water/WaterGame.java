@@ -138,7 +138,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         // Skybox
         skyboxShader = manager.createShader(readFile("/shader/skybox.vs.glsl"), readFile("/shader/skybox.fs.glsl"));
         skyboxShader.addUniformBuffer(0, cameraUBO);
-        skyboxShader.addTexture(0, skyboxTexture);
+        skyboxShader.addTexture("skyboxTexture", skyboxTexture);
 
         skyboxVAO = manager.createVertexArray();
         skyboxIBO = manager.createIndexBuffer();
@@ -173,9 +173,9 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         terrainShader = manager.createShader(readFile("/shader/terrain.vs.glsl"), readFile("/shader/terrain.fs.glsl"));
         terrainShader.addUniformBuffer(0, cameraUBO);
         terrainShader.addUniformBuffer(1, lightUBO);
-        terrainShader.addTexture(0, terrainHeightMap);
-        terrainShader.addTexture(1, terrainNormalMap);
-        terrainShader.addTexture(2, terrainTexture);
+        terrainShader.addTexture("heightMap", terrainHeightMap);
+        terrainShader.addTexture("normalMap", terrainNormalMap);
+        terrainShader.addTexture("colorTexture", terrainTexture);
 
         terrainVAO = manager.createVertexArray();
         terrainIBO = manager.createIndexBuffer();
@@ -210,10 +210,10 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         waterShader = manager.createShader(readFile("/shader/water.vs.glsl"), readFile("/shader/water.fs.glsl"));
         waterShader.addUniformBuffer(0, cameraUBO);
         waterShader.addUniformBuffer(1, lightUBO);
-        waterShader.addTexture(0, refractFBO.getColorTexture(0));
-        waterShader.addTexture(1, reflectFBO.getColorTexture(0));
-        waterShader.addTexture(2, terrainHeightMap);
-        waterShader.addTexture(3, foamTexture);
+        waterShader.addTexture("refractTexture", refractFBO.getColorTexture(0));
+        waterShader.addTexture("reflectTexture", reflectFBO.getColorTexture(0));
+        waterShader.addTexture("heightMap", terrainHeightMap);
+        waterShader.addTexture("foamTexture", foamTexture);
 
         waterVAO = manager.createVertexArray();
         waterIBO = manager.createIndexBuffer();
@@ -292,7 +292,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         GLUtils.checkError("glClear");
 
         gl.glEnable(GL3.GL_CLIP_DISTANCE0);
-        terrainShader.setUniform4f(1, new Vector4f(0.0f, 1.0f, 0.0f, -waterLevel + 0.0f));
+        terrainShader.setUniform4f("clippingPlane", new Vector4f(0.0f, 1.0f, 0.0f, -waterLevel + 0.0f));
         renderScene(gl);
         gl.glDisable(GL3.GL_CLIP_DISTANCE0);
 
@@ -313,7 +313,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         GLUtils.checkError("glClear");
 
         gl.glEnable(GL3.GL_CLIP_DISTANCE0);
-        terrainShader.setUniform4f(1, new Vector4f(0.0f, -1.0f, 0.0f, waterLevel + 2.0f));
+        terrainShader.setUniform4f("clippingPlane", new Vector4f(0.0f, -1.0f, 0.0f, waterLevel + 2.0f));
         renderScene(gl);
         gl.glDisable(GL3.GL_CLIP_DISTANCE0);
 
@@ -327,11 +327,12 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
 
         renderScene(gl);
 
-        waterShader.setUniform4f(4, new Vector4f(camera.getPosition(), 0.0f));
-        waterShader.setUniform1f(5, time += 0.01f);
-
         gl.glEnable(GL.GL_DEPTH_TEST);
         waterShader.bind();
+
+        waterShader.setUniform4f("cameraPos", new Vector4f(camera.getPosition(), 0.0f));
+        waterShader.setUniform1f("time", time += 0.01f);
+        
         waterVAO.bind();
         waterIBO.bind();
         gl.glDrawElements(GL.GL_TRIANGLES, waterIBO.getCount(), GL.GL_UNSIGNED_INT, 0);

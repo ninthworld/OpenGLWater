@@ -98,13 +98,10 @@ public class Camera {
     }
 
     public void update() {
-        Matrix4f transform = new Matrix4f();
-        transform.identity();
-        transform.translate(position);
-        transform.mul(new Matrix4f().identity().set(rotation));
-
-        viewMatrix.identity();
-        viewMatrix.set(transform.invert(new Matrix4f()));
+        viewMatrix.identity()
+                .translate(position)
+                .mul(new Matrix4f().identity().set(rotation))
+                .invert();
     }
 
     private static final float speed = 0.1f;

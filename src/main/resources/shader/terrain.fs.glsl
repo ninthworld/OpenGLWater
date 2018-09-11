@@ -1,4 +1,4 @@
-#version 430
+#version 420
 
 in vec2 vs_texCoord;
 in vec3 vs_normal;
@@ -10,7 +10,7 @@ layout(std140, binding=1) uniform Light {
     vec4 direction;
 } light;
 
-layout(binding=2) uniform sampler2D colorTexture;
+uniform sampler2D colorTexture;
 
 void main() {
 
