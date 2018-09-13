@@ -12,8 +12,6 @@ layout(std140, binding=1) uniform Light {
 
 uniform sampler2D refractTexture;
 uniform sampler2D reflectTexture;
-uniform sampler2D heightMap;
-uniform sampler2D foamTexture;
 
 uniform vec4 cameraPos;
 uniform float time;
@@ -34,8 +32,6 @@ void main() {
 
     float waterLevel = surfacePos.y;
 
-    float depth = 1.0 - texture(heightMap, vs_texCoord).r * 0.1 * 128.0 / waterLevel;
-
     // Water Surface
     vec2 fragCoord = (vs_glPosition.xy / vs_glPosition.w) / 2.0 + 0.5;
     vec2 normFragCoord = abs(0.1 * normal.y * normal.xz) + fragCoord;
@@ -45,9 +41,6 @@ void main() {
     float refractValue = dot(surfaceToCamera, vec3(0.0, 1.0, 0.0));
     vec3 fresnelColor = mix(reflectColor, refractColor, refractValue);
     surfaceColor *= fresnelColor;
-
-    // Depth Color
-    surfaceColor *= mix(vec3(1.0, 1.0, 1.0), vec3(0.05, 0.3, 0.5), depth);
 
     // Ambient
     vec3 ambient = ambientCoefficent * surfaceColor;
@@ -70,16 +63,7 @@ void main() {
     vec3 gamma = vec3(1.0 / 2.2);
     vec3 finalColor = vec3(pow(linearColor, gamma));
 
-    // Foam
-    vec3 foamColor = texture(foamTexture, surfacePos.xz / 2.0).rgb;
-    //finalColor = mix(finalColor, foamColor, clamp(dot(vec3(0.0, 1.0, 0.0), normal), 0.0, 1.0));
-
-    // Shore Blending
-    // vec3 shoreColor = mix(texture(refractTexture, fragCoord).rgb + mix(vec3(0.0, 0.0, 0.0), texture(foamTexture, surfacePos.xz).rgb, clamp(depth * 16.0, 0.0, 1.0)), finalColor, clamp(depth * 8.0, 0.0, 1.0));
-    vec3 shoreColor = mix(foamColor, finalColor, clamp(depth * 6.0, 0.0, 1.0));
-    shoreColor = mix(texture(refractTexture, fragCoord).rgb, shoreColor, clamp(depth * 20.0, 0.0, 1.0));
-
-    fs_diffuse = vec4(shoreColor, 1.0);
+    fs_diffuse = vec4(finalColor, 1.0);
 }
 
 float noise(vec2 x);
