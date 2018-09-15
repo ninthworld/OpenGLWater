@@ -24,13 +24,16 @@ public class WaterManager {
     private GLFrameBuffer refractFBO;
     private GLFrameBuffer reflectFBO;
 
+    private GLTexture heightMap;
+
     private GLVertexArray vao;
     private GLIndexBuffer ibo;
     private GLShader shader;
 
     public WaterManager(GLManager manager, int segments, Camera camera,
                         GLUniformBuffer cameraUBO, GLUniformBuffer lightUBO,
-                        GLFrameBuffer refractFBO, GLFrameBuffer reflectFBO) {
+                        GLFrameBuffer refractFBO, GLFrameBuffer reflectFBO,
+                        GLTexture heightMap) {
         this.manager = manager;
         this.segments = segments;
         this.camera = camera;
@@ -38,6 +41,7 @@ public class WaterManager {
         this.lightUBO = lightUBO;
         this.refractFBO = refractFBO;
         this.reflectFBO = reflectFBO;
+        this.heightMap = heightMap;
         this.time = 0.0f;
     }
 
@@ -47,6 +51,7 @@ public class WaterManager {
         shader.addUniformBuffer(1, lightUBO);
         shader.addTexture("refractTexture", refractFBO.getColorTexture(0));
         shader.addTexture("reflectTexture", reflectFBO.getColorTexture(0));
+        shader.addTexture("heightMap", heightMap);
 
         vao = manager.createVertexArray();
         ibo = manager.createIndexBuffer();

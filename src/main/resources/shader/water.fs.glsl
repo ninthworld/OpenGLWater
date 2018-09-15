@@ -12,95 +12,94 @@ layout(std140, binding=1) uniform Light {
 
 uniform sampler2D refractTexture;
 uniform sampler2D reflectTexture;
+uniform sampler2D heightMap;
 
 uniform vec4 cameraPos;
 uniform float time;
-
-vec3 getNormal(vec2 pos);
-
-void main() {
-
-    const float ambientCoefficent = 0.1;
-    const float materialShininess = 8.0;
-    const vec3 materialSpecularColor = vec3(1.0, 1.0, 1.0);
-
-    vec3 normal = getNormal(vs_position.xz);
-    vec3 surfacePos = vs_position;
-    vec3 surfaceColor = vec3(0.3, 0.5, 0.7);
-    vec3 surfaceToLight = normalize(light.direction.xyz);
-    vec3 surfaceToCamera = normalize(cameraPos.xyz - surfacePos);
-
-    float waterLevel = surfacePos.y;
-
-    // Water Surface
-    vec2 fragCoord = (vs_glPosition.xy / vs_glPosition.w) / 2.0 + 0.5;
-    vec2 normFragCoord = abs(0.1 * normal.y * normal.xz) + fragCoord;
-
-    vec3 refractColor = texture(refractTexture, normFragCoord).rgb;
-    vec3 reflectColor = texture(reflectTexture, normFragCoord * vec2(1.0, -1.0)).rgb;
-    float refractValue = dot(surfaceToCamera, vec3(0.0, 1.0, 0.0));
-    vec3 fresnelColor = mix(reflectColor, refractColor, refractValue);
-    surfaceColor *= fresnelColor;
-
-    // Ambient
-    vec3 ambient = ambientCoefficent * surfaceColor;
-
-    // Diffuse
-    float diffuseCoefficent = max(0.0, dot(normal, surfaceToLight));
-    vec3 diffuse = diffuseCoefficent * surfaceColor;
-
-    // Specular
-    float specularCoefficient = 0.0;
-    if(diffuseCoefficent > 0.0) {
-        specularCoefficient = pow(max(0.0, dot(surfaceToCamera, reflect(-surfaceToLight, normal))), materialShininess);
-    }
-    vec3 specular = specularCoefficient * materialSpecularColor;
-
-    // Linear Color
-    vec3 linearColor = ambient + diffuse + specular;
-
-    // Final Color
-    vec3 gamma = vec3(1.0 / 2.2);
-    vec3 finalColor = vec3(pow(linearColor, gamma));
-
-    fs_diffuse = vec4(finalColor, 1.0);
-}
 
 float noise(vec2 x);
 
 // Inspired by Kevin Roast
 // <https://github.com/kevinroast/webglshaders/blob/master/waves3.html>
-float getFractal(vec2 pos) {
-    const int octaves = 8;
 
+float getHeight(vec2 pos) {
+    const int octaves = 6;
+    float dt = time * 1.5;
     float amp1 = 1.8;
     float amp2 = 0.8;
     float sum = 0.0;
     for(int i=0; i<octaves; ++i) {
-        sum += noise(pos + time * 0.5) * amp1 * 0.25;
+        sum += noise(pos + dt * 0.5) * amp1 * 0.25;
         if(i < 2) {
-            sum += noise(pos.yx - time * 0.25) * amp2 * 0.1;
+            sum += noise(pos.yx - dt * 0.25) * amp2 * 0.1;
         }
         else {
-            sum += abs(noise(pos.yx - time * 0.8) * amp2 * 0.05) * 2.0;
+            sum += abs(noise(pos.yx - dt * 0.8) * amp2 * 0.05) * 2.0;
         }
         amp1 *= 0.4;
         amp2 *= 0.5;
-        pos.x = pos.x * 1.75 + pos.y;
-        pos.y = pos.y * 1.75 - pos.x;
+        pos.x = pos.x * 1.5 + pos.y;
+        pos.y = pos.y * 1.5 - pos.x;
     }
     return sum;
 }
 
 vec3 getNormal(vec2 pos) {
-    const float o = 0.1;
-    float h01 = getFractal(pos + vec2(-o, 0));
-    float h21 = getFractal(pos + vec2(o, 0));
-    float h10 = getFractal(pos + vec2(0, -o));
-    float h12 = getFractal(pos + vec2(0, o));
+    const float o = 0.01;
+    float h01 = getHeight(pos + vec2(-o, 0));
+    float h21 = getHeight(pos + vec2(o, 0));
+    float h10 = getHeight(pos + vec2(0, -o));
+    float h12 = getHeight(pos + vec2(0, o));
     vec3 a = normalize(vec3(2.0 * o, 0.0, h01 - h21));
     vec3 b = normalize(vec3(0.0, 2.0 * o, h10 - h12));
     return normalize(cross(a, b));
+}
+
+vec3 hdr(vec3 color, float exposure) {
+    return 1.0 - exp(-color * exposure);
+}
+
+void main() {
+
+    vec2 screenSpace = (vs_glPosition.xy / vs_glPosition.w) / 2.0 + 0.5;
+
+    vec3 normal = getNormal(vs_position.xz);
+    vec3 view = normalize(cameraPos.xyz - vs_position);
+
+    // Terrain
+    float terrainHeight = texture(heightMap, vs_texCoord).r * 0.1 * 128.0;
+    float waterLevel = 8.0 + getHeight(vs_position.xz) * 0.5;
+    float normalDepth = clamp(terrainHeight / waterLevel, 0.0, 1.0);
+
+    // Fresnel
+    vec2 ssDistort = vec2(0.05, 0.0) * normal.xz + screenSpace;
+    ssDistort.x = clamp(ssDistort.x, 0.001, 0.999);
+    ssDistort.y = clamp(ssDistort.y, 0.001, 0.999);
+
+    vec3 refractColor = texture(refractTexture, ssDistort).rgb;
+    vec3 reflectColor = texture(reflectTexture, ssDistort * vec2(1.0, -1.0)).rgb;
+
+    vec3 skyColor = reflectColor;
+    vec3 oceanColor = mix(refractColor, vec3(0.0056, 0.0224, 0.056), 1.0 - pow(normalDepth, 3.0));
+
+    float fresnel = 0.02 + 0.98 * pow(1.0 - dot(normalize(vec3(0.0, 1.0, 0.0) + normal * 0.2), view), 5.0);
+
+    // Diffuse
+    float diffuse = clamp(dot(normal, normalize(light.direction.xyz)), 0.0, 1.0);
+
+    vec3 color = fresnel * skyColor + (1.0 - fresnel) * oceanColor * diffuse * skyColor;
+
+    // Specular
+    if(diffuse > 0.0) {
+        color += pow(max(0.0, dot(-view, reflect(-normalize(light.direction.xyz), normal))), 32.0) * 0.25;
+    }
+
+    vec3 finalColor = hdr(color, 1.75);
+
+    // Shore blending
+    finalColor = mix(finalColor, texture(refractTexture, screenSpace).rgb, clamp(pow(normalDepth * 2.0 - 1.0, 16.0), 0.0, 1.0));
+
+    fs_diffuse = vec4(finalColor, 1.0);
 }
 
 //	<https://www.shadertoy.com/view/4dS3Wd>

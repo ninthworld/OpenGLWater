@@ -137,7 +137,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         terrainManager.init("/shader/terrain.vs.glsl", "/shader/terrain.fs.glsl");
 
         // Water
-        waterManager = new WaterManager(manager, 128, camera, cameraUBO, lightUBO, refractFBO, reflectFBO);
+        waterManager = new WaterManager(manager, 128, camera, cameraUBO, lightUBO, refractFBO, reflectFBO, terrainHeightMap);
         waterManager.init("/shader/water.vs.glsl", "/shader/water.fs.glsl");
     }
 

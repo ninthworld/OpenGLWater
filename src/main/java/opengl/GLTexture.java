@@ -46,6 +46,23 @@ public class GLTexture implements GLObject {
         unbind();
     }
 
+    public void init32f(int width, int height, Buffer data) {
+        GL gl = GLUtils.getGL();
+
+        this.width = width;
+        this.height = height;
+        this.isDepth = false;
+
+        int iformat = GL.GL_RGBA32F;
+        int format = GL.GL_RGBA;
+        int type = GL.GL_FLOAT;
+
+        bind();
+        gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, iformat, width, height, 0, format, type, data);
+        GLUtils.checkError("glTexImage2D");
+        unbind();
+    }
+
     @Override
     public void dispose() {
         GL gl = GLUtils.getGL();

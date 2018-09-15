@@ -69,6 +69,13 @@ public class GLManager {
         return texture;
     }
 
+    public GLTexture createTexture32f(int width, int height, Buffer data) {
+        GLTexture texture = new GLTexture();
+        texture.init32f(width, height, data);
+        glObjects.add(texture);
+        return texture;
+    }
+
     public GLTextureCube createTextureCube(int width, int height, Buffer[] data) {
         GLTextureCube texture = new GLTextureCube();
         texture.init(width, height, data);

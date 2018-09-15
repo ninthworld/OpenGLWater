@@ -11,11 +11,36 @@ layout(std140, binding=0) uniform Camera {
     mat4 viewMatrix;
 } camera;
 
-uniform float time;
-
 const float waterLevel = 8.0;
 
-float getFractal(vec2 pos);
+uniform float time;
+
+float noise(vec2 x);
+
+// Inspired by Kevin Roast
+// <https://github.com/kevinroast/webglshaders/blob/master/waves3.html>
+
+float getHeight(vec2 pos) {
+    const int octaves = 6;
+    float dt = time * 1.5;
+    float amp1 = 1.8;
+    float amp2 = 0.8;
+    float sum = 0.0;
+    for(int i=0; i<octaves; ++i) {
+        sum += noise(pos + dt * 0.5) * amp1 * 0.25;
+        if(i < 2) {
+            sum += noise(pos.yx - dt * 0.25) * amp2 * 0.1;
+        }
+        else {
+            sum += abs(noise(pos.yx - dt * 0.8) * amp2 * 0.05) * 2.0;
+        }
+        amp1 *= 0.4;
+        amp2 *= 0.5;
+        pos.x = pos.x * 1.5 + pos.y;
+        pos.y = pos.y * 1.5 - pos.x;
+    }
+    return sum;
+}
 
 void main() {
 
@@ -27,49 +52,12 @@ void main() {
     position *= 128.0;
     position.y += waterLevel;
 
-    position.y += getFractal(position.xz);
+    position.y += getHeight(position.xz) * 0.5;
 
     vs_position = position;
 
     gl_Position = camera.projMatrix * camera.viewMatrix * vec4(position, 1.0);
     vs_glPosition = gl_Position;
-}
-
-float noise(vec2 x);
-
-// Inspired by Kevin Roast
-// <https://github.com/kevinroast/webglshaders/blob/master/waves3.html>
-float getFractal(vec2 pos) {
-    const int octaves = 8;
-
-    float amp1 = 1.8;
-    float amp2 = 0.8;
-    float sum = 0.0;
-    for(int i=0; i<octaves; ++i) {
-        sum += noise(pos + time * 0.5) * amp1 * 0.25;
-        if(i < 2) {
-            sum += noise(pos.yx - time * 0.25) * amp2 * 0.1;
-        }
-        else {
-            sum += abs(noise(pos.yx - time * 0.8) * amp2 * 0.05) * 2.0;
-        }
-        amp1 *= 0.4;
-        amp2 *= 0.5;
-        pos.x = pos.x * 1.75 + pos.y;
-        pos.y = pos.y * 1.75 - pos.x;
-    }
-    return sum;
-}
-
-vec3 getNormal(vec2 pos) {
-    const float o = 0.01;
-    float h01 = getFractal(pos + vec2(-o, 0));
-    float h21 = getFractal(pos + vec2(o, 0));
-    float h10 = getFractal(pos + vec2(0, -o));
-    float h12 = getFractal(pos + vec2(0, o));
-    vec3 a = normalize(vec3(2.0 * o, 0.0, h01 - h21));
-    vec3 b = normalize(vec3(0.0, 2.0 * o, h10 - h12));
-    return normalize(cross(a, b));
 }
 
 //	<https://www.shadertoy.com/view/4dS3Wd>

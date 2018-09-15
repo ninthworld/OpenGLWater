@@ -13,9 +13,12 @@ layout(std140, binding=1) uniform Light {
 uniform sampler2D colorTexture;
 
 void main() {
+    vec3 normal = vs_normal;
+    normal.y *= 0.2;
+    normal = normalize(normal);
 
     vec3 lightDir = normalize(light.direction.xyz);
-    float diff = max(dot(vs_normal, lightDir), 0.1);
+    float diff = max(dot(normal, lightDir), 0.0) * 1.2;
 
     vec3 color = texture(colorTexture, vs_position.xz * 0.5).rgb;
 

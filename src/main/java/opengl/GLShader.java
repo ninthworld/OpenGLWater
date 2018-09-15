@@ -5,6 +5,7 @@ import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GL4;
+import org.joml.Vector2fc;
 import org.joml.Vector4f;
 import org.joml.Vector4fc;
 
@@ -100,6 +101,12 @@ public class GLShader implements GLObject {
             GLUtils.checkError("glBindBuffersBase");
         }
 
+        updateTextures();
+    }
+
+    public void updateTextures() {
+        GL4 gl = GLUtils.getGL4();
+
         int activeIndex = 0;
         for(Map.Entry<Integer, GLTexture> entry : textures.entrySet()) {
             gl.glActiveTexture(GL.GL_TEXTURE0 + activeIndex);
@@ -132,6 +139,16 @@ public class GLShader implements GLObject {
 
         gl.glUniform1f(location, value);
         GLUtils.checkError("glUniform1f");
+    }
+
+    public void setUniform2f(String name, Vector2fc value) {
+        GL2 gl = GLUtils.getGL2();
+
+        int location = gl.glGetUniformLocation(programId, name);
+        GLUtils.checkError("glGetUniformLocation");
+
+        gl.glUniform2f(location, value.x(), value.y());
+        GLUtils.checkError("glUniform2f");
     }
 
     public void setUniform4f(String name, Vector4fc value) {
