@@ -79,8 +79,14 @@ void main() {
     vec3 refractColor = texture(refractTexture, ssDistort).rgb;
     vec3 reflectColor = texture(reflectTexture, ssDistort * vec2(1.0, -1.0)).rgb;
 
+    if(cameraPos.y < waterLevel) {
+        vec3 col = reflectColor;
+        reflectColor = refractColor;
+        refractColor = col;
+    }
+
     vec3 skyColor = reflectColor;
-    vec3 oceanColor = mix(refractColor, vec3(0.0056, 0.0224, 0.056), 1.0 - pow(normalDepth, 3.0));
+    vec3 oceanColor = mix(refractColor, vec3(0.0056, 0.0224, 0.056), 1.0 - normalDepth);
 
     float fresnel = 0.02 + 0.98 * pow(1.0 - dot(normalize(vec3(0.0, 1.0, 0.0) + normal * 0.2), view), 5.0);
 

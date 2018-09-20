@@ -84,6 +84,8 @@ public class WaterManager {
     public void render() {
         GL4 gl = (GL4) GLContext.getCurrentGL();
 
+        gl.glDisable(GL.GL_CULL_FACE);
+
         shader.bind();
 
         shader.setUniform4f("cameraPos", new Vector4f(camera.getPosition(), 0.0f));
@@ -96,5 +98,7 @@ public class WaterManager {
         ibo.unbind();
         vao.unbind();
         shader.unbind();
+
+        gl.glEnable(GL.GL_CULL_FACE);
     }
 }
