@@ -23,7 +23,9 @@ public class NoiseGame extends JFrame implements GLEventListener {
 
     private GLManager manager;
 
-    private GLTexture noiseTexture;
+    private static final int OCTAVES = 4;
+    private GLTexture[] noiseTextures = new GLTexture[OCTAVES];
+
     private GLVertexArray quadVAO;
     private GLIndexBuffer quadIBO;
     private GLShader quadShader;
@@ -86,45 +88,31 @@ public class NoiseGame extends JFrame implements GLEventListener {
         }));
         quadIBO.setCount(6);
 
-        // Texture
-        noiseTexture = manager.createTexture(SIZE, SIZE, false, null);
-        noiseTexture.setSampler(sampler);
-
         // Shader
         quadShader = manager.createShader("/shader/quad.vs.glsl", "/shader/quad.fs.glsl");
-        quadShader.addTexture("colorTexture", noiseTexture);
 
         // Generate Noise
-        SimplexNoise noise = new SimplexNoise();
+        Noise perlin = new Noise();
 
-        ByteBuffer textureData = Buffers.newDirectByteBuffer(SIZE * SIZE * 4);
-        for(int i=0; i<SIZE; ++i) {
-            for(int j=0; j<SIZE; ++j) {
-                float normalHeight = tiledNoise(i, j, SIZE, noise);
-                byte val = (byte)(normalHeight * 256.0f);
-                textureData.put(val).put(val).put(val).put((byte)255);
+        for(int o=0; o<OCTAVES; ++o) {
+            noiseTextures[o] = manager.createTexture(SIZE, SIZE, false, null);
+            noiseTextures[o].setSampler(sampler);
+
+            int pow = (int)Math.pow(2, o);
+
+            ByteBuffer textureData = Buffers.newDirectByteBuffer(SIZE * SIZE * 4);
+            for(int i=0; i<SIZE; ++i) {
+                for(int j=0; j<SIZE; ++j) {
+                    float normalHeight = perlin.noise(i * pow / 64.0f, j * pow / 64.0f, 4 * pow) * 0.5f + 0.5f; //tiledNoise(i, j, SIZE, noise);
+                    byte val = (byte)(normalHeight * 256.0f);
+                    textureData.put(val).put(val).put(val).put((byte)255);
+                }
             }
+            textureData.rewind();
+            noiseTextures[o].setData(textureData);
+
+            quadShader.addTexture("colorTextures[" + o + "]", noiseTextures[o]);
         }
-        textureData.rewind();
-
-        noiseTexture.setData(textureData);
-    }
-
-    // Tiled 2D Simplex Noise from 4D Noise Space
-    // by Ron Valstar <http://ronvalstar.nl/creating-tileable-noise-maps>
-    private float tiledNoise(float x, float y, int iSize, SimplexNoise s) {
-        final float fNoiseScale = 0.8f;
-        final float fRds = 1.2f;
-        float fNX = x / iSize;
-        float fNY = y / iSize;
-        float fRdx = fNX * 2.0f * (float)Math.PI;
-        float fRdy = fNY * 2.0f * (float)Math.PI;
-        float a = fRds * (float)Math.sin(fRdx);
-        float b = fRds * (float)Math.cos(fRdx);
-        float c = fRds * (float)Math.sin(fRdy);
-        float d = fRds * (float)Math.cos(fRdy);
-        float v = s.noise(123 + a * fNoiseScale, 231 + b * fNoiseScale, 312 + c * fNoiseScale, 273 + d * fNoiseScale);
-        return Math.min(Math.max(v / 2.0f + 0.5f, 0.0f), 1.0f);
     }
 
     @Override
@@ -133,6 +121,8 @@ public class NoiseGame extends JFrame implements GLEventListener {
 
         manager.dispose();
     }
+
+    private float time = 0.0f;
 
     @Override
     public void display(GLAutoDrawable glAutoDrawable) {
@@ -144,6 +134,9 @@ public class NoiseGame extends JFrame implements GLEventListener {
         quadIBO.bind();
 
         quadShader.bind();
+
+        quadShader.setUniform1f("time", time++);
+
         gl.glDrawElements(GL.GL_TRIANGLES, quadIBO.getCount(), GL.GL_UNSIGNED_INT, 0);
         quadShader.unbind();
 
