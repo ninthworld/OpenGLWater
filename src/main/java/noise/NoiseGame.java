@@ -6,6 +6,7 @@ import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.Animator;
 import opengl.*;
 import org.joml.SimplexNoise;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 import utils.Camera;
 import utils.DataFormat;
@@ -15,6 +16,9 @@ import java.nio.ByteBuffer;
 
 public class NoiseGame extends JFrame implements GLEventListener {
 
+    private static final int SIZE = 256;
+    private static final int OCTAVES = 4;
+
     private int width;
     private int height;
 
@@ -23,7 +27,6 @@ public class NoiseGame extends JFrame implements GLEventListener {
 
     private GLManager manager;
 
-    private static final int OCTAVES = 4;
     private GLTexture[] noiseTextures = new GLTexture[OCTAVES];
 
     private GLVertexArray quadVAO;
@@ -58,8 +61,6 @@ public class NoiseGame extends JFrame implements GLEventListener {
         this.canvas.requestFocus();
     }
 
-    private static final int SIZE = 256;
-
     @Override
     public void init(GLAutoDrawable glAutoDrawable) {
         GLUtils.logDebug("Initialize");
@@ -89,11 +90,10 @@ public class NoiseGame extends JFrame implements GLEventListener {
         quadIBO.setCount(6);
 
         // Shader
-        quadShader = manager.createShader("/shader/quad.vs.glsl", "/shader/quad.fs.glsl");
+        quadShader = manager.createShader("/shader/quad.vs.glsl", "/shader/noise.fs.glsl");
 
         // Generate Noise
         Noise perlin = new Noise();
-
         for(int o=0; o<OCTAVES; ++o) {
             noiseTextures[o] = manager.createTexture(SIZE, SIZE, false, null);
             noiseTextures[o].setSampler(sampler);
@@ -103,7 +103,7 @@ public class NoiseGame extends JFrame implements GLEventListener {
             ByteBuffer textureData = Buffers.newDirectByteBuffer(SIZE * SIZE * 4);
             for(int i=0; i<SIZE; ++i) {
                 for(int j=0; j<SIZE; ++j) {
-                    float normalHeight = perlin.noise(i * pow / 64.0f, j * pow / 64.0f, 4 * pow) * 0.5f + 0.5f; //tiledNoise(i, j, SIZE, noise);
+                    float normalHeight = perlin.noise(i * pow / 32.0f, j * pow / 32.0f, 8 * pow) * 0.5f + 0.5f;
                     byte val = (byte)(normalHeight * 256.0f);
                     textureData.put(val).put(val).put(val).put((byte)255);
                 }
@@ -135,7 +135,7 @@ public class NoiseGame extends JFrame implements GLEventListener {
 
         quadShader.bind();
 
-        quadShader.setUniform1f("time", time++);
+        quadShader.setUniform1f("time", time += 0.01f);
 
         gl.glDrawElements(GL.GL_TRIANGLES, quadIBO.getCount(), GL.GL_UNSIGNED_INT, 0);
         quadShader.unbind();

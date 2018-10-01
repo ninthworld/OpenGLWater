@@ -6,6 +6,7 @@ import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GL4;
 import org.joml.Vector2fc;
+import org.joml.Vector3fc;
 import org.joml.Vector4f;
 import org.joml.Vector4fc;
 
@@ -149,6 +150,17 @@ public class GLShader implements GLObject {
 
         gl.glUniform2f(location, value.x(), value.y());
         GLUtils.checkError("glUniform2f");
+    }
+
+    public void setUniform3f(String name, Vector3fc value) {
+        GL2 gl = GLUtils.getGL2();
+
+        int location = gl.glGetUniformLocation(programId, name);
+        GLUtils.checkError("glGetUniformLocation");
+
+        gl.glUniform3f(location, value.x(), value.y(), value.z());
+        //GLUtils.checkError("glUniform3f");
+        gl.glGetError();
     }
 
     public void setUniform4f(String name, Vector4fc value) {

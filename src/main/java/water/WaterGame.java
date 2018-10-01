@@ -37,6 +37,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
     private SkyboxManager skyboxManager;
     private TerrainManager terrainManager;
     private WaterManager waterManager;
+    private UnderwaterManager underwaterManager;
 
     private GLTexture terrainHeightMap;
     private GLTexture terrainNormalMap;
@@ -46,9 +47,11 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
 
     private GLUniformBuffer lightUBO;
     private GLUniformBuffer cameraUBO;
+    private GLUniformBuffer invCameraUBO;
 
     private GLFrameBuffer refractFBO;
     private GLFrameBuffer reflectFBO;
+    private GLFrameBuffer sceneFBO;
 
     private Camera camera;
 
@@ -97,6 +100,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
 
         // Uniforms
         cameraUBO = manager.createUniformBuffer();
+        invCameraUBO = manager.createUniformBuffer();
 
         lightUBO = manager.createUniformBuffer();
         lightUBO.setData(Buffers.newDirectFloatBuffer(new float[]{ 0.0f, 1.0f, 1.0f, 0.0f }));
@@ -111,6 +115,11 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         reflectFBO.addColorTexture(0, manager.createTexture(width, height, false, null));
         reflectFBO.setDepthTexture(manager.createTexture(width, height, true, null));
         reflectFBO.getColorTexture(0).setSampler(sampler);
+
+        sceneFBO = manager.createFrameBuffer();
+        sceneFBO.addColorTexture(0, manager.createTexture(width, height, false, null));
+        sceneFBO.setDepthTexture(manager.createTexture(width, height, true, null));
+        sceneFBO.getColorTexture(0).setSampler(sampler);
 
         // Textures
         terrainHeightMap = manager.loadTexture("/terrain_height.png");
@@ -137,8 +146,12 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         terrainManager.init("/shader/terrain.vs.glsl", "/shader/terrain.fs.glsl");
 
         // Water
-        waterManager = new WaterManager(manager, 128, camera, cameraUBO, lightUBO, refractFBO, reflectFBO, terrainHeightMap);
+        waterManager = new WaterManager(manager, 512, camera, cameraUBO, lightUBO, refractFBO, reflectFBO, terrainHeightMap);
         waterManager.init("/shader/water.vs.glsl", "/shader/water.fs.glsl");
+
+        // Underwater
+        underwaterManager = new UnderwaterManager(manager, camera, invCameraUBO, sceneFBO);
+        underwaterManager.init("/shader/quad.vs.glsl", "/shader/underwater.fs.glsl");
     }
 
     @Override
@@ -210,11 +223,24 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         // -- Water
 
         // Draw Water
+        sceneFBO.bind();
+
         manager.clear();
 
         skyboxManager.render();
         terrainManager.render(new Vector4f(0.0f, 0.0f, 0.0f, 0.0f));
         waterManager.render();
+
+        sceneFBO.unbind();
+
+        // Draw Underwater FX
+        camera.getProjMatrix().invert(new Matrix4f()).get(0, cameraBuffer);
+        camera.getViewMatrix().invert(new Matrix4f()).get(16, cameraBuffer);
+        invCameraUBO.setData(cameraBuffer);
+
+        manager.clear();
+
+        underwaterManager.render();
     }
 
     @Override

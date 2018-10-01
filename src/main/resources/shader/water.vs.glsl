@@ -15,31 +15,16 @@ const float waterLevel = 8.0;
 
 uniform float time;
 
-float noise(vec2 x);
-
-// Inspired by Kevin Roast
-// <https://github.com/kevinroast/webglshaders/blob/master/waves3.html>
+uniform sampler2D colorTextures[4];
 
 float getHeight(vec2 pos) {
-    const int octaves = 6;
-    float dt = time * 1.5;
-    float amp1 = 1.8;
-    float amp2 = 0.8;
-    float sum = 0.0;
-    for(int i=0; i<octaves; ++i) {
-        sum += noise(pos + dt * 0.5) * amp1 * 0.25;
-        if(i < 2) {
-            sum += noise(pos.yx - dt * 0.25) * amp2 * 0.1;
-        }
-        else {
-            sum += abs(noise(pos.yx - dt * 0.8) * amp2 * 0.05) * 2.0;
-        }
-        amp1 *= 0.4;
-        amp2 *= 0.5;
-        pos.x = pos.x * 1.5 + pos.y;
-        pos.y = pos.y * 1.5 - pos.x;
-    }
-    return sum;
+    float dt = time * 0.05;
+    float val = 0.0;
+    val += texture(colorTextures[0], vec2(0.5, 1.0) * pos * 0.05 + vec2(dt, 0.0)).r * 0.8;
+    val += texture(colorTextures[1], vec2(1.0, 0.5) * pos * 0.1 + vec2(0.0, dt)).r * 0.1;
+    val += texture(colorTextures[2], pos * 0.2 + vec2(dt, dt)).r * 0.05;
+    val += texture(colorTextures[3], pos * 0.4 + vec2(-dt, -dt)).r * 0.05;
+    return val;
 }
 
 void main() {
@@ -58,38 +43,4 @@ void main() {
 
     gl_Position = camera.projMatrix * camera.viewMatrix * vec4(position, 1.0);
     vs_glPosition = gl_Position;
-}
-
-//	<https://www.shadertoy.com/view/4dS3Wd>
-//	By Morgan McGuire @morgan3d, http://graphicscodex.com
-//
-float hash(float n) { return fract(sin(n) * 1e4); }
-float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
-
-float noise(float x) {
-    float i = floor(x);
-    float f = fract(x);
-    float u = f * f * (3.0 - 2.0 * f);
-    return mix(hash(i), hash(i + 1.0), u);
-}
-
-float noise(vec2 x) {
-    vec2 i = floor(x);
-    vec2 f = fract(x);
-
-    // Four corners in 2D of a tile
-    float a = hash(i);
-    float b = hash(i + vec2(1.0, 0.0));
-    float c = hash(i + vec2(0.0, 1.0));
-    float d = hash(i + vec2(1.0, 1.0));
-
-    // Simple 2D lerp using smoothstep envelope between the values.
-    // return vec3(mix(mix(a, b, smoothstep(0.0, 1.0, f.x)),
-    //			mix(c, d, smoothstep(0.0, 1.0, f.x)),
-    //			smoothstep(0.0, 1.0, f.y)));
-
-    // Same code, with the clamps in smoothstep and common subexpressions
-    // optimized away.
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
 }

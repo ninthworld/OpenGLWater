@@ -4,15 +4,20 @@ import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLContext;
+import noise.Noise;
 import opengl.*;
 import org.joml.Vector4f;
 import utils.Camera;
 import utils.DataFormat;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 public class WaterManager {
+
+    private static final int SIZE = 256;
+    private static final int OCTAVES = 4;
 
     private GLManager manager;
     private Camera camera;
@@ -29,6 +34,8 @@ public class WaterManager {
     private GLVertexArray vao;
     private GLIndexBuffer ibo;
     private GLShader shader;
+
+    private GLTexture[] noiseTextures = new GLTexture[OCTAVES];
 
     public WaterManager(GLManager manager, int segments, Camera camera,
                         GLUniformBuffer cameraUBO, GLUniformBuffer lightUBO,
@@ -79,6 +86,31 @@ public class WaterManager {
         indices.rewind();
         ibo.setData(indices);
         ibo.setCount(segments * segments * 6);
+
+        // Generate Noise
+        GLSampler sampler = manager.createSampler(GLSampler.EdgeType.WRAP, true);
+        Noise[] perlin = new Noise[OCTAVES];
+        for(int o=0; o<OCTAVES; ++o) {
+            perlin[o] = new Noise();
+
+            noiseTextures[o] = manager.createTexture(SIZE, SIZE, false, null);
+            noiseTextures[o].setSampler(sampler);
+
+            int pow = (int)Math.pow(2, o);
+
+            ByteBuffer textureData = Buffers.newDirectByteBuffer(SIZE * SIZE * 4);
+            for(int i=0; i<SIZE; ++i) {
+                for(int j=0; j<SIZE; ++j) {
+                    float normalHeight = perlin[o].noise(i * pow / 32.0f, j * pow / 32.0f, 8 * pow) * 0.5f + 0.5f;
+                    byte val = (byte)(normalHeight * 256.0f);
+                    textureData.put(val).put(val).put(val).put((byte)255);
+                }
+            }
+            textureData.rewind();
+            noiseTextures[o].setData(textureData);
+
+            shader.addTexture("noiseTextures[" + o + "]", noiseTextures[o]);
+        }
     }
 
     public void render() {
@@ -88,7 +120,7 @@ public class WaterManager {
 
         shader.bind();
 
-        shader.setUniform4f("cameraPos", new Vector4f(camera.getPosition(), 0.0f));
+        shader.setUniform3f("cameraPos", camera.getPosition());
         shader.setUniform1f("time", time += 0.01f);
 
         vao.bind();
