@@ -1,5 +1,7 @@
 #version 420
 
+#define SPEED 0.5
+
 in vec2 vs_texCoord;
 in vec3 vs_normal;
 in vec3 vs_position;
@@ -27,7 +29,7 @@ void main() {
     vec3 color = texture(colorTexture, vs_position.xz * 0.5).rgb;
 
     const vec2[] offset = { vec2(0.002, 0.002), vec2(0.002, 0.0), vec2(0.0) };
-    float dt = time * 0.05 * 4.0;
+    float dt = time * 0.05 * SPEED;
     vec3 caustics = vec3(0.0);
     if(vs_position.y < 8.0) {
         for(int i=0; i<3; ++i) {

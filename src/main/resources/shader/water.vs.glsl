@@ -22,8 +22,6 @@ float getHeight(vec2 pos) {
     float val = 0.0;
     val += texture(noiseTextures[0], vec2(0.5, 1.0) * pos * 0.05 + vec2(dt, 0.0)).r * 0.8;
     val += texture(noiseTextures[1], vec2(1.0, 0.5) * pos * 0.1 + vec2(0.0, dt)).r * 0.1;
-//    val += texture(noiseTextures[2], pos * 0.2 + vec2(dt, dt)).r * 0.05;
-//    val += texture(noiseTextures[3], pos * 0.4 + vec2(-dt, -dt)).r * 0.05;
     val += (1.0 - abs(texture(noiseTextures[2], pos * 0.2 + vec2(dt, dt)).r * 2.0 - 1.0)) * 0.04;
     val += (1.0 - abs(texture(noiseTextures[3], pos * 0.4 + vec2(-dt, -dt)).r * 2.0 - 1.0)) * 0.02;
     return val;
@@ -39,7 +37,7 @@ void main() {
     position *= 128.0;
     position.y += waterLevel;
 
-//    position.y += getHeight(position.xz) * 0.5;
+    position.y += getHeight(position.xz);
 
     vs_position = position;
 

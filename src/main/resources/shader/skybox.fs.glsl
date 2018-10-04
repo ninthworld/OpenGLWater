@@ -9,9 +9,9 @@ uniform samplerCube skyboxTexture;
 vec3 atmosphere(vec3 r, vec3 r0, vec3 pSun, float iSun, float rPlanet, float rAtmos, vec3 kRlh, float kMie, float shRlh, float shMie, float g);
 
 void main() {
-    // vec3 color = texture(skyboxTexture, vs_position).rgb;
+    vec3 color = texture(skyboxTexture, vs_position).rgb;
 
-    vec3 color = atmosphere(normalize(vs_position), vec3(0, 6372e3, 0), normalize(vec3(0.0, 1.0, 1.0)), 22.0, 6371e3, 6471e3, vec3(5.5e-6, 13.0e-6, 22.4e-6), 21e-6, 8e3, 1.2e3, 0.758);
+    //vec3 color = atmosphere(normalize(vs_position), vec3(0, 6372e3, 0), normalize(vec3(0.0, 1.0, 1.0)), 22.0, 6371e3, 6471e3, vec3(5.5e-6, 13.0e-6, 22.4e-6), 21e-6, 8e3, 1.2e3, 0.758);
 
     fs_diffuse = vec4(color, 1.0);
 }

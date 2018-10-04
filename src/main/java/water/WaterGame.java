@@ -7,19 +7,10 @@ import com.jogamp.opengl.util.Animator;
 import opengl.*;
 import org.joml.*;
 import utils.Camera;
-import utils.DataFormat;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 
 import static java.awt.event.KeyEvent.VK_ESCAPE;
 
@@ -147,7 +138,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
 
         // Water
         waterManager = new WaterManager(manager, 512, camera, cameraUBO, lightUBO, refractFBO, reflectFBO, terrainHeightMap);
-        waterManager.init("/shader/water.vs.glsl", "/shader/water.fs.glsl");
+        waterManager.init("/shader/water.vs.glsl", "/shader/oceanwater.glsl");
 
         // Underwater
         underwaterManager = new UnderwaterManager(manager, camera, invCameraUBO, sceneFBO);

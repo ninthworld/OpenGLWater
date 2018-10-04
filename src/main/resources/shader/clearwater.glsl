@@ -26,8 +26,6 @@ float getHeight(vec2 pos) {
     float val = 0.0;
     val += texture(noiseTextures[0], vec2(0.5, 1.0) * pos * 0.05 + vec2(dt, 0.0)).r * 0.8;
     val += texture(noiseTextures[1], vec2(1.0, 0.5) * pos * 0.1 + vec2(0.0, dt)).r * 0.14;
-//    val += texture(noiseTextures[2], pos * 0.2 + vec2(dt, dt)).r * 0.04;
-//    val += texture(noiseTextures[3], pos * 0.4 + vec2(-dt, -dt)).r * 0.02;
     val += (1.0 - abs(texture(noiseTextures[2], pos * 0.2 + vec2(dt, dt)).r * 2.0 - 1.0)) * 0.04;
     val += (1.0 - abs(texture(noiseTextures[3], pos * 0.4 + vec2(-dt, -dt)).r * 2.0 - 1.0)) * 0.02;
     return val;
@@ -44,10 +42,6 @@ vec3 getNormal(vec2 pos) {
     return normalize(cross(a, b));
 }
 
-vec3 hdr(vec3 color, float exposure) {
-    return 1.0 - exp(-color * exposure);
-}
-
 void main() {
 
     vec2 screenSpace = (vs_glPosition.xy / vs_glPosition.w) / 2.0 + 0.5;
@@ -57,7 +51,7 @@ void main() {
 
     // Terrain
     float terrainHeight = texture(heightMap, vs_texCoord).r * 0.1 * 128.0;
-    float waterLevel = 8.0;// + getHeight(vs_position.xz) * 0.5;
+    float waterLevel = 8.0 + getHeight(vs_position.xz);
     float normalDepth = clamp(terrainHeight / waterLevel, 0.0, 1.0);
 
     // Fresnel
@@ -75,21 +69,27 @@ void main() {
     }
 
     vec3 skyColor = reflectColor;
-    vec3 oceanColor = mix(refractColor, vec3(0.0056, 0.0224, 0.056), 1.0 - normalDepth);
+    vec3 waterColor = refractColor;
 
-    float fresnel = 0.02 + 0.98 * pow(1.0 - dot(normalize(vec3(0.0, 1.0, 0.0) + normal * 0.2), view), 5.0);
+    float fresnel = 0.0;
+    if(cameraPos.y < waterLevel) {
+        fresnel = 1.0 - dot(vec3(0.0, -1.0, 0.0), view);
+    }
+    else {
+        fresnel = 0.02 + 0.98 * pow(1.0 - dot(vec3(0.0, 1.0, 0.0), view), 2.0);
+    }
 
     // Diffuse
     float diffuse = clamp(dot(normal, normalize(light.direction.xyz)), 0.0, 1.0);
 
-    vec3 color = fresnel * skyColor + (1.0 - fresnel) * oceanColor * diffuse * skyColor;
+    vec3 color = diffuse * mix(waterColor, skyColor, fresnel);
 
     // Specular
     if(diffuse > 0.0) {
         color += pow(max(0.0, dot(-view, reflect(-normalize(light.direction.xyz), normal))), 32.0) * 0.25;
     }
 
-    vec3 finalColor = hdr(color, 1.75);
+    vec3 finalColor = color;
 
     // Shore blending
     finalColor = mix(finalColor, texture(refractTexture, screenSpace).rgb, clamp(pow(normalDepth * 2.0 - 1.0, 16.0), 0.0, 1.0));
