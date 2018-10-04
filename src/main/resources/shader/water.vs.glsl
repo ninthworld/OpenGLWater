@@ -1,5 +1,7 @@
 #version 420
 
+#define SPEED 1.0
+
 layout(location=0) in vec3 in_position;
 
 out vec2 vs_texCoord;
@@ -18,12 +20,12 @@ uniform float time;
 uniform sampler2D noiseTextures[4];
 
 float getHeight(vec2 pos) {
-    float dt = time * 0.05;
+    float dt = time * 0.05 * SPEED;
     float val = 0.0;
     val += texture(noiseTextures[0], vec2(0.5, 1.0) * pos * 0.05 + vec2(dt, 0.0)).r * 0.8;
-    val += texture(noiseTextures[1], vec2(1.0, 0.5) * pos * 0.1 + vec2(0.0, dt)).r * 0.1;
-    val += (1.0 - abs(texture(noiseTextures[2], pos * 0.2 + vec2(dt, dt)).r * 2.0 - 1.0)) * 0.04;
-    val += (1.0 - abs(texture(noiseTextures[3], pos * 0.4 + vec2(-dt, -dt)).r * 2.0 - 1.0)) * 0.02;
+    val += texture(noiseTextures[1], vec2(1.0, 0.5) * pos * 0.1 + vec2(0.0, dt)).r * 0.14;
+    val += (1.0 - abs(texture(noiseTextures[2], pos * 0.1 + vec2(dt, dt)).r * 2.0 - 1.0)) * 0.04;
+    val += (1.0 - abs(texture(noiseTextures[3], pos * 0.1 + vec2(-dt, -dt)).r * 2.0 - 1.0)) * 0.02;
     return val;
 }
 
