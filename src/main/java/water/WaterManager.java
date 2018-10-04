@@ -6,6 +6,8 @@ import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLContext;
 import noise.Noise;
 import opengl.*;
+import org.joml.SimplexNoise;
+import org.joml.Vector3f;
 import org.joml.Vector4f;
 import utils.Camera;
 import utils.DataFormat;
@@ -22,7 +24,6 @@ public class WaterManager {
     private GLManager manager;
     private Camera camera;
     private int segments;
-    private float time;
 
     private GLUniformBuffer cameraUBO;
     private GLUniformBuffer lightUBO;
@@ -49,7 +50,6 @@ public class WaterManager {
         this.refractFBO = refractFBO;
         this.reflectFBO = reflectFBO;
         this.heightMap = heightMap;
-        this.time = 0.0f;
     }
 
     public void init(String vertexFile, String fragmentFile) {
@@ -113,7 +113,7 @@ public class WaterManager {
         }
     }
 
-    public void render() {
+    public void render(float time) {
         GL4 gl = (GL4) GLContext.getCurrentGL();
 
         gl.glDisable(GL.GL_CULL_FACE);
@@ -121,7 +121,7 @@ public class WaterManager {
         shader.bind();
 
         shader.setUniform3f("cameraPos", camera.getPosition());
-        shader.setUniform1f("time", time += 0.01f);
+        shader.setUniform1f("time", time);
 
         vao.bind();
         ibo.bind();

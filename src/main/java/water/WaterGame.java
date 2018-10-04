@@ -161,6 +161,8 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         manager.dispose();
     }
 
+    private float time = 0.0f;
+
     @Override
     public void display(GLAutoDrawable glAutoDrawable) {
         camera.input(keyDown);
@@ -198,7 +200,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         manager.clear();
 
         skyboxManager.render();
-        terrainManager.render(new Vector4f(0.0f, 1.0f, 0.0f, -waterLevel + 0.0f));
+        terrainManager.render(time, new Vector4f(0.0f, 1.0f, 0.0f, -waterLevel + 0.0f));
 
         reflectFBO.unbind();
 
@@ -216,7 +218,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         manager.clear();
 
         skyboxManager.render();
-        terrainManager.render(new Vector4f(0.0f, -1.0f, 0.0f, waterLevel + 2.0f));
+        terrainManager.render(time, new Vector4f(0.0f, -1.0f, 0.0f, waterLevel + 2.0f));
 
         refractFBO.unbind();
 
@@ -228,8 +230,8 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         manager.clear();
 
         skyboxManager.render();
-        terrainManager.render(new Vector4f(0.0f, 0.0f, 0.0f, 0.0f));
-        waterManager.render();
+        terrainManager.render(time, new Vector4f(0.0f, 0.0f, 0.0f, 0.0f));
+        waterManager.render(time);
 
         sceneFBO.unbind();
 
@@ -241,6 +243,8 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         manager.clear();
 
         underwaterManager.render();
+
+        time += 0.01f;
     }
 
     @Override

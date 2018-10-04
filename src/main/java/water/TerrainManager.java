@@ -4,15 +4,20 @@ import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GL4;
+import noise.Noise;
 import opengl.*;
 import org.joml.Vector4f;
 import utils.Camera;
 import utils.DataFormat;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 public class TerrainManager {
+
+    private static final int SIZE = 256;
+    private static final int OCTAVES = 4;
 
     private GLManager manager;
     private int segments;
@@ -26,6 +31,8 @@ public class TerrainManager {
     private GLVertexArray vao;
     private GLIndexBuffer ibo;
     private GLShader shader;
+
+    private GLTexture[] noiseTextures = new GLTexture[OCTAVES];
 
     public TerrainManager(GLManager manager, int segments,
                         GLUniformBuffer cameraUBO, GLUniformBuffer lightUBO,
@@ -73,20 +80,49 @@ public class TerrainManager {
         indices.rewind();
         ibo.setData(indices);
         ibo.setCount(segments * segments * 6);
+
+        // Generate Noise
+        GLSampler sampler = manager.createSampler(GLSampler.EdgeType.WRAP, true);
+        Noise[] perlin = new Noise[OCTAVES];
+        for(int o=0; o<OCTAVES; ++o) {
+            perlin[o] = new Noise();
+
+            noiseTextures[o] = manager.createTexture(SIZE, SIZE, false, null);
+            noiseTextures[o].setSampler(sampler);
+
+            int pow = (int)Math.pow(2, o);
+
+            ByteBuffer textureData = Buffers.newDirectByteBuffer(SIZE * SIZE * 4);
+            for(int i=0; i<SIZE; ++i) {
+                for(int j=0; j<SIZE; ++j) {
+                    float normalHeight = perlin[o].noise(i * pow / 32.0f, j * pow / 32.0f, 8 * pow) * 0.5f + 0.5f;
+                    byte val = (byte)(normalHeight * 256.0f);
+                    textureData.put(val).put(val).put(val).put((byte)255);
+                }
+            }
+            textureData.rewind();
+            noiseTextures[o].setData(textureData);
+
+            shader.addTexture("noiseTextures[" + o + "]", noiseTextures[o]);
+        }
     }
 
-    public void render(Vector4f clippingPlane) {
+    public void render(float time, Vector4f clippingPlane) {
         GL4 gl = GLUtils.getGL4();
 
         gl.glEnable(GL3.GL_CLIP_DISTANCE0);
         shader.bind();
+
         shader.setUniform4f("clippingPlane", clippingPlane);
+        shader.setUniform1f("time", time);
+
         vao.bind();
         ibo.bind();
         gl.glDrawElements(GL.GL_TRIANGLES, ibo.getCount(), GL.GL_UNSIGNED_INT, 0);
         GLUtils.checkError("glDrawArrays");
         ibo.unbind();
         vao.unbind();
+
         shader.unbind();
         gl.glDisable(GL3.GL_CLIP_DISTANCE0);
     }
