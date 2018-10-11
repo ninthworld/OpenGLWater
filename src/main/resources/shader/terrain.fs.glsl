@@ -20,11 +20,11 @@ uniform sampler2D noiseTextures[4];
 
 void main() {
     vec3 normal = vs_normal;
-    normal.y *= 0.2;
+    normal.y *= 0.5;
     normal = normalize(normal);
 
     vec3 lightDir = normalize(light.direction.xyz);
-    float diff = max(dot(normal, lightDir), 0.0) * 1.2;
+    float diff = max(0.0, dot(normal, lightDir));
 
     vec3 color = texture(colorTexture, vs_position.xz * 0.5).rgb;
 

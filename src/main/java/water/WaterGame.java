@@ -94,7 +94,7 @@ public class WaterGame extends JFrame implements GLEventListener, KeyListener {
         invCameraUBO = manager.createUniformBuffer();
 
         lightUBO = manager.createUniformBuffer();
-        lightUBO.setData(Buffers.newDirectFloatBuffer(new float[]{ 0.0f, 1.0f, 1.0f, 0.0f }));
+        lightUBO.setData(Buffers.newDirectFloatBuffer(new float[]{ 0.0f, -0.5f, 1.0f, 0.0f }));
 
         // FrameBuffers
         refractFBO = manager.createFrameBuffer();
