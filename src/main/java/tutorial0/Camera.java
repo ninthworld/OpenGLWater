@@ -43,15 +43,11 @@ public class Camera {
     }
 
     public Matrix3D getViewMatrix() {
-        Matrix3D view = new Matrix3D();
-        view.setToIdentity();
-
-        MatrixStack stack = new MatrixStack(1);
-        stack.loadMatrix(view);
-        stack.multMatrix(rotation.inverse());
-        stack.translate(position.getX(), position.getY(), position.getZ());
-
-        return stack.peek();
+        Matrix3D matrix = new Matrix3D();
+        matrix.setToIdentity();
+        matrix.concatenate(rotation.inverse());
+        matrix.translate(-position.getX(), -position.getY(), -position.getZ());
+        return matrix;
     }
 
     public Vector3D getForward() {
@@ -88,22 +84,22 @@ public class Camera {
         final float moveSpeed = 0.05f;
         final float rotateSpeed = 1.0f;
         if(keyDown[VK_W]) {
-            move(moveSpeed, getForward());
-        }
-        else if(keyDown[VK_S]) {
             move(-moveSpeed, getForward());
         }
-        else if(keyDown[VK_A]) {
-            move(moveSpeed, getRight());
+        else if(keyDown[VK_S]) {
+            move(moveSpeed, getForward());
         }
-        else if(keyDown[VK_D]) {
+        else if(keyDown[VK_A]) {
             move(-moveSpeed, getRight());
         }
+        else if(keyDown[VK_D]) {
+            move(moveSpeed, getRight());
+        }
         else if(keyDown[VK_SPACE]) {
-            move(-moveSpeed, getUp());
+            move(moveSpeed, getUp());
         }
         else if(keyDown[VK_SHIFT]) {
-            move(moveSpeed, getUp());
+            move(-moveSpeed, getUp());
         }
         else if(keyDown[VK_LEFT]) {
             rotate(rotateSpeed, Camera.UP);

@@ -82,7 +82,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
         // Initialize Camera
         camera = new Camera(45.0f, (float) this.getWidth() / (float) this.getHeight(), 0.1f, 1000.0f);
-        camera.move(-1.0f, camera.getForward());
+        camera.move(1.0f, camera.getForward());
 
         // Load Skybox Texture
 
@@ -114,11 +114,11 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glUniform3f(shapeLightDirectionU, (float)lightDirection.getX(), (float)lightDirection.getY(), (float)lightDirection.getZ());
 
         // Initialize Ground
-
+        
 
         // Initialize Sphere
         Sphere sphereShape = new Sphere();
-        spherePosition = new Point3D(0.0, 1.0, 0.0);
+        spherePosition = new Point3D(0.0, 0.0, 0.0);
 
         int[] bufferId = new int[1];
         gl.glGenBuffers(1, bufferId, 0);
