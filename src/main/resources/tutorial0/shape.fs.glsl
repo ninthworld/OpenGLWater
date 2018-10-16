@@ -1,12 +1,13 @@
 #version 420
 
-in vec3 vs_normal;
 in vec2 vs_texCoord;
 
 out vec4 fs_color;
 
+uniform sampler2D u_colorTexture;
 uniform vec3 u_lightDirection;
 
 void main() {
-    fs_color = vec4(vs_normal * 0.5 + 0.5, 1.0);
+    vec3 color = texture(u_colorTexture, vs_texCoord * 128.0).rgb;
+    fs_color = vec4(color, 1.0);
 }

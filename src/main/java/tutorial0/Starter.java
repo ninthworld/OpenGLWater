@@ -7,6 +7,8 @@ import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
 import graphicslib3D.MatrixStack;
 import graphicslib3D.Point3D;
 import graphicslib3D.Vector3D;
@@ -31,21 +33,16 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
     private Camera camera;
 
-    private int skyboxTextureId;
-    private int gridTextureId;
+    private Texture skyboxTexture;
+    private Texture groundTexture;
 
     private int skyboxVAO;
-
     private int groundVAO;
-
-    private int sphereVAO;
-    private int sphereIBO;
-    private int sphereIndexCount;
-    private Point3D spherePosition;
 
     private int shapeShaderId;
     private int shapeProjMatrixU;
     private int shapeModelViewMatrixU;
+    private int shapeTextureU;
 
     private Vector3D lightDirection;
 
@@ -82,13 +79,21 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
         // Initialize Camera
         camera = new Camera(45.0f, (float) this.getWidth() / (float) this.getHeight(), 0.1f, 1000.0f);
-        camera.move(1.0f, camera.getForward());
+        camera.move(8.0f, camera.getUp());
 
         // Load Skybox Texture
 
 
         // Load Grid Texture
-
+        try {
+            groundTexture = TextureIO.newTexture(getClass().getResource("/grid.png"), true, ".grid");
+            groundTexture.setTexParameteri(gl, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR_MIPMAP_LINEAR);
+            groundTexture.setTexParameteri(gl, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR_MIPMAP_LINEAR);
+            groundTexture.setTexParameteri(gl, GL.GL_TEXTURE_WRAP_S, GL.GL_MIRRORED_REPEAT);
+            groundTexture.setTexParameteri(gl, GL.GL_TEXTURE_WRAP_T, GL.GL_MIRRORED_REPEAT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // Load Shape Shader
         shapeShaderId = gl.glCreateProgram();
@@ -108,68 +113,49 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
         shapeProjMatrixU = gl.glGetUniformLocation(shapeShaderId, "u_projMatrix");
         shapeModelViewMatrixU = gl.glGetUniformLocation(shapeShaderId, "u_modelViewMatrix");
+        shapeTextureU = gl.glGetUniformLocation(shapeShaderId, "u_colorTexture");
         int shapeLightDirectionU = gl.glGetUniformLocation(shapeShaderId, "u_lightDirection");
 
         gl.glUseProgram(shapeShaderId);
         gl.glUniform3f(shapeLightDirectionU, (float)lightDirection.getX(), (float)lightDirection.getY(), (float)lightDirection.getZ());
 
         // Initialize Ground
-        
-
-        // Initialize Sphere
-        Sphere sphereShape = new Sphere();
-        spherePosition = new Point3D(0.0, 0.0, 0.0);
+        float groundSize = 128.0f;
+        float[] groundPositions = new float[] {
+                -groundSize, 0.0f, -groundSize,
+                -groundSize, 0.0f, groundSize,
+                groundSize, 0.0f, -groundSize,
+                -groundSize, 0.0f, groundSize,
+                groundSize, 0.0f, -groundSize,
+                groundSize, 0.0f, groundSize
+        };
+        float[] groundTexCoords = new float[] {
+                0.0f, 0.0f,
+                0.0f, 1.0f,
+                1.0f, 0.0f,
+                0.0f, 1.0f,
+                1.0f, 0.0f,
+                1.0f, 1.0f
+        };
 
         int[] bufferId = new int[1];
-        gl.glGenBuffers(1, bufferId, 0);
-        sphereIBO = bufferId[0];
-        gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, sphereIBO);
-        gl.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, sphereShape.getIndices().length * 4, Buffers.newDirectIntBuffer(sphereShape.getIndices()), GL.GL_STATIC_DRAW);
-        sphereIndexCount = sphereShape.getIndices().length;
-
-        float[] spherePositions = new float[sphereShape.getVertices().length * 3];
-        float[] sphereNormals = new float[sphereShape.getVertices().length * 3];
-        float[] sphereTexCoords = new float[sphereShape.getVertices().length * 2];
-
-        for(int i=0; i<sphereShape.getVertices().length; ++i) {
-            Vertex3D vertex = sphereShape.getVertices()[i];
-            spherePositions[i * 3 + 0] = (float)vertex.getLocation().getX();
-            spherePositions[i * 3 + 1] = (float)vertex.getLocation().getY();
-            spherePositions[i * 3 + 2] = (float)vertex.getLocation().getZ();
-            sphereNormals[i * 3 + 0] = (float)vertex.getNormalX();
-            sphereNormals[i * 3 + 1] = (float)vertex.getNormalY();
-            sphereNormals[i * 3 + 2] = (float)vertex.getNormalZ();
-            sphereTexCoords[i * 2 + 0] = vertex.getFloatTextureCoords()[0];
-            sphereTexCoords[i * 2 + 1] = vertex.getFloatTextureCoords()[1];
-        }
-
         gl.glGenVertexArrays(1, bufferId, 0);
-        sphereVAO = bufferId[0];
-        gl.glBindVertexArray(sphereVAO);
+        groundVAO = bufferId[0];
+        gl.glBindVertexArray(groundVAO);
 
         gl.glGenBuffers(1, bufferId, 0);
-        int spherePositionsVBO = bufferId[0];
-        gl.glBindBuffer(GL.GL_ARRAY_BUFFER, spherePositionsVBO);
-        gl.glBufferData(GL.GL_ARRAY_BUFFER, spherePositions.length * 4, Buffers.newDirectFloatBuffer(spherePositions), GL.GL_STATIC_DRAW);
+        gl.glBindBuffer(GL.GL_ARRAY_BUFFER, bufferId[0]);
+        gl.glBufferData(GL.GL_ARRAY_BUFFER, groundPositions.length * 4, Buffers.newDirectFloatBuffer(groundPositions), GL.GL_STATIC_DRAW);
 
         gl.glVertexAttribPointer(0, 3,  GL.GL_FLOAT, false, 3 * 4, 0);
         gl.glEnableVertexAttribArray(0);
 
         gl.glGenBuffers(1, bufferId, 0);
-        int sphereNormalsVBO = bufferId[0];
-        gl.glBindBuffer(GL.GL_ARRAY_BUFFER, sphereNormalsVBO);
-        gl.glBufferData(GL.GL_ARRAY_BUFFER, sphereNormals.length * 4, Buffers.newDirectFloatBuffer(sphereNormals), GL.GL_STATIC_DRAW);
+        gl.glBindBuffer(GL.GL_ARRAY_BUFFER, bufferId[0]);
+        gl.glBufferData(GL.GL_ARRAY_BUFFER, groundTexCoords.length * 4, Buffers.newDirectFloatBuffer(groundTexCoords), GL.GL_STATIC_DRAW);
 
-        gl.glVertexAttribPointer(1, 3,  GL.GL_FLOAT, false, 3 * 4, 0);
+        gl.glVertexAttribPointer(1, 2,  GL.GL_FLOAT, false, 2 * 4, 0);
         gl.glEnableVertexAttribArray(1);
-
-        gl.glGenBuffers(1, bufferId, 0);
-        int sphereTexCoordsVBO = bufferId[0];
-        gl.glBindBuffer(GL.GL_ARRAY_BUFFER, sphereTexCoordsVBO);
-        gl.glBufferData(GL.GL_ARRAY_BUFFER, sphereTexCoords.length * 4, Buffers.newDirectFloatBuffer(sphereTexCoords), GL.GL_STATIC_DRAW);
-
-        gl.glVertexAttribPointer(2, 2,  GL.GL_FLOAT, false, 2 * 4, 0);
-        gl.glEnableVertexAttribArray(2);
     }
 
     @Override
@@ -189,12 +175,14 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
         MatrixStack stack = new MatrixStack(1);
         stack.loadMatrix(camera.getViewMatrix());
-        stack.translate(spherePosition.getX(), spherePosition.getY(), spherePosition.getZ());
         gl.glUniformMatrix4fv(shapeModelViewMatrixU, 1, false, stack.peek().getFloatValues(), 0);
 
-        gl.glBindVertexArray(sphereVAO);
-        gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, sphereIBO);
-        gl.glDrawElements(GL.GL_TRIANGLES, sphereIndexCount, GL.GL_UNSIGNED_INT, 0);
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+        groundTexture.bind(gl);
+        gl.glUniform1i(shapeTextureU, 0);
+
+        gl.glBindVertexArray(groundVAO);
+        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
     }
 
     @Override

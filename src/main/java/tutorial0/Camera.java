@@ -45,9 +45,9 @@ public class Camera {
     public Matrix3D getViewMatrix() {
         Matrix3D matrix = new Matrix3D();
         matrix.setToIdentity();
-        matrix.concatenate(rotation.inverse());
-        matrix.translate(-position.getX(), -position.getY(), -position.getZ());
-        return matrix;
+        matrix.translate(position.getX(), position.getY(), position.getZ());
+        matrix.concatenate(rotation);
+        return matrix.inverse();
     }
 
     public Vector3D getForward() {
@@ -111,6 +111,7 @@ public class Camera {
             rotate(rotateSpeed, getRight());
         }
         else if(keyDown[VK_DOWN]) {
+
             rotate(-rotateSpeed, getRight());
         }
     }
