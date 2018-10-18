@@ -81,7 +81,7 @@ public class Camera {
     }
 
     public void input(boolean[] keyDown) {
-        final float moveSpeed = 0.05f;
+        final float moveSpeed = 1.0f;
         final float rotateSpeed = 1.0f;
         if(keyDown[VK_W]) {
             move(-moveSpeed, getForward());
@@ -89,29 +89,28 @@ public class Camera {
         else if(keyDown[VK_S]) {
             move(moveSpeed, getForward());
         }
-        else if(keyDown[VK_A]) {
+        if(keyDown[VK_A]) {
             move(-moveSpeed, getRight());
         }
         else if(keyDown[VK_D]) {
             move(moveSpeed, getRight());
         }
-        else if(keyDown[VK_SPACE]) {
+        if(keyDown[VK_SPACE]) {
             move(moveSpeed, getUp());
         }
         else if(keyDown[VK_SHIFT]) {
             move(-moveSpeed, getUp());
         }
-        else if(keyDown[VK_LEFT]) {
+        if(keyDown[VK_LEFT]) {
             rotate(rotateSpeed, Camera.UP);
         }
         else if(keyDown[VK_RIGHT]) {
             rotate(-rotateSpeed, Camera.UP);
         }
-        else if(keyDown[VK_UP]) {
+        if(keyDown[VK_UP]) {
             rotate(rotateSpeed, getRight());
         }
         else if(keyDown[VK_DOWN]) {
-
             rotate(-rotateSpeed, getRight());
         }
     }
