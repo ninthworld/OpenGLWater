@@ -1,4 +1,4 @@
-package tutorial0;
+package tutorial2;
 
 import org.joml.*;
 

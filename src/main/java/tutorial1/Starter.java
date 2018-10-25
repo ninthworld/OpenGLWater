@@ -1,4 +1,4 @@
-package tutorial0;
+package tutorial1;
 
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.*;
@@ -36,8 +36,11 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
     private int geometryShaderProgram;
     private int groundVertexArray;
 
+    private int waterShaderProgram;
+    private int waterVertexArray;
+
     public Starter(int width, int height) {
-        super("Tutorial 0 - A Simple Scene");
+        super("Tutorial 1 - Water Geometry");
 
         this.sunLightDirection = new Vector3f(0.2f, 0.5f, -1.0f).normalize();
         this.camera = new Camera();
@@ -76,6 +79,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         // Load Shaders
         skyboxShaderProgram = Utils.createShader("target/classes/res/shaders/skybox.vs.glsl", "target/classes/res/shaders/skybox.fs.glsl");
         geometryShaderProgram = Utils.createShader("target/classes/tutorial0/geometry.vs.glsl", "target/classes/tutorial0/geometry.fs.glsl");
+        waterShaderProgram = Utils.createShader("target/classes/tutorial1/water.vs.glsl", "target/classes/tutorial1/water.fs.glsl");
 
         // Initialize Skybox Geometry
         int[] bufferId = new int[1];
@@ -110,6 +114,17 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glBufferData(GL.GL_ARRAY_BUFFER, Utils.PLANE_TEXCOORDS.length * 4, Buffers.newDirectFloatBuffer(Utils.PLANE_TEXCOORDS), GL.GL_STATIC_DRAW);
         gl.glVertexAttribPointer(1, 2,  GL.GL_FLOAT, false, 2 * 4, 0);
         gl.glEnableVertexAttribArray(1);
+
+        // Initialize Water Geometry
+        gl.glGenVertexArrays(1, bufferId, 0);
+        waterVertexArray = bufferId[0];
+        gl.glBindVertexArray(waterVertexArray);
+
+        gl.glGenBuffers(1, bufferId, 0);
+        gl.glBindBuffer(GL.GL_ARRAY_BUFFER, bufferId[0]);
+        gl.glBufferData(GL.GL_ARRAY_BUFFER, Utils.PLANE_POSITIONS.length * 4, Buffers.newDirectFloatBuffer(Utils.PLANE_POSITIONS), GL.GL_STATIC_DRAW);
+        gl.glVertexAttribPointer(0, 3,  GL.GL_FLOAT, false, 3 * 4, 0);
+        gl.glEnableVertexAttribArray(0);
     }
 
     @Override
@@ -177,6 +192,31 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glUniform1i(geometryTextureU, 0);
 
         gl.glBindVertexArray(groundVertexArray);
+        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
+
+        // Render Water
+        int waterProjMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_projMatrix");
+        int waterViewMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_viewMatrix");
+        int waterModelMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_modelMatrix");
+        int waterCameraPositionU = gl.glGetUniformLocation(waterShaderProgram, "u_cameraPosition");
+        int waterSunLightDirectionU = gl.glGetUniformLocation(waterShaderProgram, "u_sunLightDirection");
+
+        gl.glUseProgram(waterShaderProgram);
+        gl.glUniformMatrix4fv(waterProjMatrixU, 1, false, projMatrixBuffer);
+
+        viewMatrix.get(modelViewMatrixBuffer);
+        gl.glUniformMatrix4fv(waterViewMatrixU, 1, false, modelViewMatrixBuffer);
+
+        modelMatrix.identity();
+        modelMatrix.translate(0.0f, 8.0f, 0.0f);
+        modelMatrix.scale(128.0f);
+        modelMatrix.get(modelViewMatrixBuffer);
+        gl.glUniformMatrix4fv(waterModelMatrixU, 1, false, modelViewMatrixBuffer);
+
+        gl.glUniform3f(waterCameraPositionU, camera.getPosition().x(), camera.getPosition().y(), camera.getPosition().z());
+        gl.glUniform3f(waterSunLightDirectionU, sunLightDirection.x, sunLightDirection.y, sunLightDirection.z);
+
+        gl.glBindVertexArray(waterVertexArray);
         gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
     }
 

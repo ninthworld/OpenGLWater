@@ -14,6 +14,3 @@
 # Maven
 log/
 target/
-
-# Other
-graphicslib3D.jar
