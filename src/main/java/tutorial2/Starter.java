@@ -5,9 +5,8 @@ import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.texture.Texture;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fc;
-import org.joml.Vector3f;
+import com.jogamp.opengl.util.texture.TextureIO;
+import org.joml.*;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
@@ -39,6 +38,11 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
     private int waterShaderProgram;
     private int waterVertexArray;
 
+    private int refractTextureId;
+    private int reflectTextureId;
+    private int refractFrameBuffer;
+    private int reflectFrameBuffer;
+
     public Starter(int width, int height) {
         super("Tutorial 2 - Reflection and Refraction");
 
@@ -65,7 +69,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
     @Override
     public void init(GLAutoDrawable drawable) {
-        GL2 gl = (GL2) GLContext.getCurrentGL();
+        GL3 gl = (GL3) GLContext.getCurrentGL();
 
         // Global Settings
         gl.glEnable(GL.GL_DEPTH_TEST);
@@ -79,7 +83,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         // Load Shaders
         skyboxShaderProgram = Utils.createShader("target/classes/res/shaders/skybox.vs.glsl", "target/classes/res/shaders/skybox.fs.glsl");
         geometryShaderProgram = Utils.createShader("target/classes/tutorial0/geometry.vs.glsl", "target/classes/tutorial0/geometry.fs.glsl");
-        waterShaderProgram = Utils.createShader("target/classes/tutorial1/water.vs.glsl", "target/classes/tutorial1/water.fs.glsl");
+        waterShaderProgram = Utils.createShader("target/classes/tutorial2/water.vs.glsl", "target/classes/tutorial2/water.fs.glsl");
 
         // Initialize Skybox Geometry
         int[] bufferId = new int[1];
@@ -125,6 +129,32 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glBufferData(GL.GL_ARRAY_BUFFER, Utils.PLANE_POSITIONS.length * 4, Buffers.newDirectFloatBuffer(Utils.PLANE_POSITIONS), GL.GL_STATIC_DRAW);
         gl.glVertexAttribPointer(0, 3,  GL.GL_FLOAT, false, 3 * 4, 0);
         gl.glEnableVertexAttribArray(0);
+
+        // Initialize Refract Framebuffer
+        gl.glGenFramebuffers(1, bufferId, 0);
+        refractFrameBuffer = bufferId[0];
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, refractFrameBuffer);
+        gl.glGenTextures(1, bufferId, 0);
+        refractTextureId = bufferId[0];
+        gl.glBindTexture(GL.GL_TEXTURE_2D, refractTextureId);
+        gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, getWidth(), getHeight(), 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, null);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+        gl.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, refractTextureId, 0);
+        gl.glDrawBuffer(GL.GL_COLOR_ATTACHMENT0);
+
+        // Initialize Reflect Framebuffer
+        gl.glGenFramebuffers(1, bufferId, 0);
+        reflectFrameBuffer = bufferId[0];
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, reflectFrameBuffer);
+        gl.glGenTextures(1, bufferId, 0);
+        reflectTextureId = bufferId[0];
+        gl.glBindTexture(GL.GL_TEXTURE_2D, reflectTextureId);
+        gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, getWidth(), getHeight(), 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, null);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+        gl.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, reflectTextureId, 0);
+        gl.glDrawBuffer(GL.GL_COLOR_ATTACHMENT0);
     }
 
     @Override
@@ -142,12 +172,28 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         FloatBuffer projMatrixBuffer = Buffers.newDirectFloatBuffer(16);
         camera.getProjMatrix().get(projMatrixBuffer);
 
-        Matrix4fc viewMatrix = camera.getViewMatrix();
+        Matrix4fc viewMatrix = new Matrix4f(camera.getViewMatrix());
         Matrix4f modelMatrix = new Matrix4f().identity();
         Matrix4f modelViewMatrix = new Matrix4f();
         FloatBuffer modelViewMatrixBuffer = Buffers.newDirectFloatBuffer(16);
 
-        // Clear Screen
+        Vector3fc camPos = new Vector3f(camera.getPosition());
+        Matrix3fc camRot = new Matrix3f(camera.getRotation());
+        camera.setPosition(new Vector3f(camPos.x(), camPos.y() - 2.0f * (camPos.y() - 8.0f), camPos.z()));
+        Vector3f forward = camera.getForward().mul(1.0f, -1.0f, 1.0f, new Vector3f());
+        Vector3f up = forward.cross(camera.getRight(), new Vector3f()).normalize();
+        camera.setRotation(new Matrix3f(camera.getRight(), up, forward));
+
+        Matrix4fc reflectViewMatrix = new Matrix4f(camera.getViewMatrix());
+
+        camera.setRotation(camRot);
+        camera.setPosition(camPos);
+
+        // Bind Reflect Framebuffer
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, reflectFrameBuffer);
+        gl.glViewport(0, 0, getWidth(), getHeight());
+
+        // Clear Framebuffer
         gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
 
         // Render Skybox
@@ -159,7 +205,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glUniformMatrix4fv(skyboxProjMatrixU, 1, false, projMatrixBuffer);
 
         modelMatrix.scale(1000.0f);
-        viewMatrix.mul(modelMatrix, modelViewMatrix);
+        reflectViewMatrix.mul(modelMatrix, modelViewMatrix);
         modelViewMatrix.get(modelViewMatrixBuffer);
         gl.glUniformMatrix4fv(skyboxModelViewMatrixU, 1, false, modelViewMatrixBuffer);
 
@@ -182,7 +228,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
         modelMatrix.identity();
         modelMatrix.scale(128.0f);
-        viewMatrix.mul(modelMatrix, modelViewMatrix);
+        reflectViewMatrix.mul(modelMatrix, modelViewMatrix);
         modelViewMatrix.get(modelViewMatrixBuffer);
         gl.glUniformMatrix4fv(geometryModelViewMatrixU, 1, false, modelViewMatrixBuffer);
 
@@ -194,12 +240,59 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glBindVertexArray(groundVertexArray);
         gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
 
+        // Bind Refract Framebuffer
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, refractFrameBuffer);
+        gl.glViewport(0, 0, getWidth(), getHeight());
+
+        // Clear Framebuffer
+        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
+
+        // Re-render Skybox
+        gl.glUseProgram(skyboxShaderProgram);
+        modelMatrix.identity();
+        modelMatrix.scale(1000.0f);
+        viewMatrix.mul(modelMatrix, modelViewMatrix);
+        modelViewMatrix.get(modelViewMatrixBuffer);
+        gl.glUniformMatrix4fv(skyboxModelViewMatrixU, 1, false, modelViewMatrixBuffer);
+        gl.glBindVertexArray(skyboxVertexArray);
+        gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, skyboxIndexBuffer);
+        gl.glDrawElements(GL.GL_TRIANGLES, 36, GL.GL_UNSIGNED_INT, 0);
+
+        // Re-render Ground
+        gl.glUseProgram(geometryShaderProgram);
+        modelMatrix.identity();
+        modelMatrix.scale(128.0f);
+        viewMatrix.mul(modelMatrix, modelViewMatrix);
+        modelViewMatrix.get(modelViewMatrixBuffer);
+        gl.glUniformMatrix4fv(geometryModelViewMatrixU, 1, false, modelViewMatrixBuffer);
+        gl.glBindVertexArray(groundVertexArray);
+        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
+
+        // Unbind Framebuffer
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
+
+        // Clear Screen
+        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
+
+        // Re-render Skybox
+        gl.glUseProgram(skyboxShaderProgram);
+        gl.glBindVertexArray(skyboxVertexArray);
+        gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, skyboxIndexBuffer);
+        gl.glDrawElements(GL.GL_TRIANGLES, 36, GL.GL_UNSIGNED_INT, 0);
+
+        // Re-render Ground
+        gl.glUseProgram(geometryShaderProgram);
+        gl.glBindVertexArray(groundVertexArray);
+        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
+
         // Render Water
         int waterProjMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_projMatrix");
         int waterViewMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_viewMatrix");
         int waterModelMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_modelMatrix");
         int waterCameraPositionU = gl.glGetUniformLocation(waterShaderProgram, "u_cameraPosition");
         int waterSunLightDirectionU = gl.glGetUniformLocation(waterShaderProgram, "u_sunLightDirection");
+        int waterRefractTextureU = gl.glGetUniformLocation(waterShaderProgram, "u_refractTexture");
+        int waterReflectTextureU = gl.glGetUniformLocation(waterShaderProgram, "u_reflectTexture");
 
         gl.glUseProgram(waterShaderProgram);
         gl.glUniformMatrix4fv(waterProjMatrixU, 1, false, projMatrixBuffer);
@@ -215,6 +308,12 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
         gl.glUniform3f(waterCameraPositionU, camera.getPosition().x(), camera.getPosition().y(), camera.getPosition().z());
         gl.glUniform3f(waterSunLightDirectionU, sunLightDirection.x, sunLightDirection.y, sunLightDirection.z);
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, refractTextureId);
+        gl.glUniform1i(waterRefractTextureU, 0);
+        gl.glActiveTexture(GL.GL_TEXTURE1);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, reflectTextureId);
+        gl.glUniform1i(waterReflectTextureU, 1);
 
         gl.glBindVertexArray(waterVertexArray);
         gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
