@@ -11,26 +11,26 @@ uniform vec3 u_sunLightDirection;
 uniform sampler2D u_refractTexture;
 uniform sampler2D u_reflectTexture;
 
-const vec3 waterColor = vec3(0.0);//, 0.6, 0.9);
+const vec3 waterColor = vec3(0.0, 0.1, 0.3);
 const vec3 specularColor = vec3(0.5);
 const float specularShininess = 128.0;
 
 void main() {
     vec2 screenSpace = (vs_glPosition.xy / vs_glPosition.w) / 2.0 + 0.5;
     vec3 view = normalize(u_cameraPosition - vs_position);
+    vec3 normal = vs_normal;
 
+    vec3 color = waterColor;
     vec3 refractColor = texture(u_refractTexture, screenSpace).rgb;
     vec3 reflectColor = texture(u_reflectTexture, screenSpace * vec2(1.0, -1.0)).rgb;
 
-    vec3 color = waterColor;
+    float fresnel = dot(view, normal);
+    color += mix(reflectColor, refractColor, fresnel);
 
-    float fresnel = pow(dot(view, -vs_normal), 8.0);
-    color += mix(refractColor, reflectColor, fresnel);
-
-    float cosTheta = max(0.0, dot(vs_normal, u_sunLightDirection));
+    float cosTheta = max(0.0, dot(normal, u_sunLightDirection));
     vec3 finalColor = color * cosTheta;
 
-    float specular = dot(view, reflect(-u_sunLightDirection, vs_normal));
+    float specular = dot(view, reflect(-u_sunLightDirection, normal));
     if(specular > 0.0) {
         specular = pow(specular, specularShininess);
         finalColor += vec3(specular) * specularColor;

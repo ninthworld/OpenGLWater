@@ -18,6 +18,8 @@ import static java.awt.event.KeyEvent.VK_ESCAPE;
 
 public class Starter extends JFrame implements GLEventListener, KeyListener {
 
+    private static final float WATER_LEVEL = 8.0f;
+
     private GLCanvas canvas;
     private FPSAnimator animator;
     private boolean[] keyDown;
@@ -169,104 +171,31 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         camera.input(keyDown);
 
         // Camera Matrices
-        FloatBuffer projMatrixBuffer = Buffers.newDirectFloatBuffer(16);
-        camera.getProjMatrix().get(projMatrixBuffer);
-
+        Matrix4fc projMatrix = camera.getProjMatrix();
         Matrix4fc viewMatrix = new Matrix4f(camera.getViewMatrix());
-        Matrix4f modelMatrix = new Matrix4f().identity();
-        Matrix4f modelViewMatrix = new Matrix4f();
-        FloatBuffer modelViewMatrixBuffer = Buffers.newDirectFloatBuffer(16);
 
-        Vector3fc camPos = new Vector3f(camera.getPosition());
-        Matrix3fc camRot = new Matrix3f(camera.getRotation());
-        camera.setPosition(new Vector3f(camPos.x(), camPos.y() - 2.0f * (camPos.y() - 8.0f), camPos.z()));
-        Vector3f forward = camera.getForward().mul(1.0f, -1.0f, 1.0f, new Vector3f());
-        Vector3f up = forward.cross(camera.getRight(), new Vector3f()).normalize();
-        camera.setRotation(new Matrix3f(camera.getRight(), up, forward));
-
-        Matrix4fc reflectViewMatrix = new Matrix4f(camera.getViewMatrix());
-
-        camera.setRotation(camRot);
-        camera.setPosition(camPos);
+        Matrix4f reflectMatrix = new Matrix4f(
+                1.0f, 1.0f, 1.0f, 1.0f,
+                -1.0f, 1.0f, -1.0f, 1.0f,
+                1.0f, -1.0f, 1.0f, 1.0f,
+                1.0f, (2.0f * WATER_LEVEL / camera.getPosition().y()) - 1.0f, 1.0f, 1.0f);
+        Matrix4f reflectViewMatrix = viewMatrix.invert(new Matrix4f()).mulComponentWise(reflectMatrix).invert();
 
         // Bind Reflect Framebuffer
         gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, reflectFrameBuffer);
+        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
         gl.glViewport(0, 0, getWidth(), getHeight());
 
-        // Clear Framebuffer
-        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
-
-        // Render Skybox
-        int skyboxProjMatrixU = gl.glGetUniformLocation(skyboxShaderProgram, "u_projMatrix");
-        int skyboxModelViewMatrixU = gl.glGetUniformLocation(skyboxShaderProgram, "u_modelViewMatrix");
-        int skyboxTextureU = gl.glGetUniformLocation(skyboxShaderProgram, "u_skyboxTexture");
-
-        gl.glUseProgram(skyboxShaderProgram);
-        gl.glUniformMatrix4fv(skyboxProjMatrixU, 1, false, projMatrixBuffer);
-
-        modelMatrix.scale(1000.0f);
-        reflectViewMatrix.mul(modelMatrix, modelViewMatrix);
-        modelViewMatrix.get(modelViewMatrixBuffer);
-        gl.glUniformMatrix4fv(skyboxModelViewMatrixU, 1, false, modelViewMatrixBuffer);
-
-        gl.glActiveTexture(GL.GL_TEXTURE0);
-        gl.glBindTexture(GL.GL_TEXTURE_CUBE_MAP, skyboxTexture.getTextureObject());
-        gl.glUniform1i(skyboxTextureU, 0);
-
-        gl.glBindVertexArray(skyboxVertexArray);
-        gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, skyboxIndexBuffer);
-        gl.glDrawElements(GL.GL_TRIANGLES, 36, GL.GL_UNSIGNED_INT, 0);
-
-        // Render Ground
-        int geometryProjMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_projMatrix");
-        int geometryModelViewMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_modelViewMatrix");
-        int geometryTextureU = gl.glGetUniformLocation(geometryShaderProgram, "u_colorTexture");
-        int geometrySunLightDirectionU = gl.glGetUniformLocation(geometryShaderProgram, "u_sunLightDirection");
-
-        gl.glUseProgram(geometryShaderProgram);
-        gl.glUniformMatrix4fv(geometryProjMatrixU, 1, false, projMatrixBuffer);
-
-        modelMatrix.identity();
-        modelMatrix.scale(128.0f);
-        reflectViewMatrix.mul(modelMatrix, modelViewMatrix);
-        modelViewMatrix.get(modelViewMatrixBuffer);
-        gl.glUniformMatrix4fv(geometryModelViewMatrixU, 1, false, modelViewMatrixBuffer);
-
-        gl.glUniform3f(geometrySunLightDirectionU, sunLightDirection.x, sunLightDirection.y, sunLightDirection.z);
-        gl.glActiveTexture(GL.GL_TEXTURE0);
-        gl.glBindTexture(GL.GL_TEXTURE_2D, groundTexture.getTextureObject());
-        gl.glUniform1i(geometryTextureU, 0);
-
-        gl.glBindVertexArray(groundVertexArray);
-        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
+        drawSkybox(projMatrix, reflectViewMatrix);
+        drawGeometry(projMatrix, reflectViewMatrix);
 
         // Bind Refract Framebuffer
         gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, refractFrameBuffer);
+        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
         gl.glViewport(0, 0, getWidth(), getHeight());
 
-        // Clear Framebuffer
-        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
-
-        // Re-render Skybox
-        gl.glUseProgram(skyboxShaderProgram);
-        modelMatrix.identity();
-        modelMatrix.scale(1000.0f);
-        viewMatrix.mul(modelMatrix, modelViewMatrix);
-        modelViewMatrix.get(modelViewMatrixBuffer);
-        gl.glUniformMatrix4fv(skyboxModelViewMatrixU, 1, false, modelViewMatrixBuffer);
-        gl.glBindVertexArray(skyboxVertexArray);
-        gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, skyboxIndexBuffer);
-        gl.glDrawElements(GL.GL_TRIANGLES, 36, GL.GL_UNSIGNED_INT, 0);
-
-        // Re-render Ground
-        gl.glUseProgram(geometryShaderProgram);
-        modelMatrix.identity();
-        modelMatrix.scale(128.0f);
-        viewMatrix.mul(modelMatrix, modelViewMatrix);
-        modelViewMatrix.get(modelViewMatrixBuffer);
-        gl.glUniformMatrix4fv(geometryModelViewMatrixU, 1, false, modelViewMatrixBuffer);
-        gl.glBindVertexArray(groundVertexArray);
-        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
+        drawSkybox(projMatrix, viewMatrix);
+        drawGeometry(projMatrix, viewMatrix);
 
         // Unbind Framebuffer
         gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
@@ -274,18 +203,14 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         // Clear Screen
         gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
 
-        // Re-render Skybox
-        gl.glUseProgram(skyboxShaderProgram);
-        gl.glBindVertexArray(skyboxVertexArray);
-        gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, skyboxIndexBuffer);
-        gl.glDrawElements(GL.GL_TRIANGLES, 36, GL.GL_UNSIGNED_INT, 0);
-
-        // Re-render Ground
-        gl.glUseProgram(geometryShaderProgram);
-        gl.glBindVertexArray(groundVertexArray);
-        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
+        drawSkybox(projMatrix, viewMatrix);
+        drawGeometry(projMatrix, viewMatrix);
 
         // Render Water
+        Matrix4f modelMatrix = new Matrix4f().identity();
+        modelMatrix.translate(0.0f, WATER_LEVEL, 0.0f);
+        modelMatrix.scale(128.0f);
+
         int waterProjMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_projMatrix");
         int waterViewMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_viewMatrix");
         int waterModelMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_modelMatrix");
@@ -295,16 +220,16 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         int waterReflectTextureU = gl.glGetUniformLocation(waterShaderProgram, "u_reflectTexture");
 
         gl.glUseProgram(waterShaderProgram);
-        gl.glUniformMatrix4fv(waterProjMatrixU, 1, false, projMatrixBuffer);
 
-        viewMatrix.get(modelViewMatrixBuffer);
-        gl.glUniformMatrix4fv(waterViewMatrixU, 1, false, modelViewMatrixBuffer);
+        FloatBuffer matrixBuffer = Buffers.newDirectFloatBuffer(16);
+        viewMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(waterViewMatrixU, 1, false, matrixBuffer);
 
-        modelMatrix.identity();
-        modelMatrix.translate(0.0f, 8.0f, 0.0f);
-        modelMatrix.scale(128.0f);
-        modelMatrix.get(modelViewMatrixBuffer);
-        gl.glUniformMatrix4fv(waterModelMatrixU, 1, false, modelViewMatrixBuffer);
+        modelMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(waterModelMatrixU, 1, false, matrixBuffer);
+
+        projMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(waterProjMatrixU, 1, false, matrixBuffer);
 
         gl.glUniform3f(waterCameraPositionU, camera.getPosition().x(), camera.getPosition().y(), camera.getPosition().z());
         gl.glUniform3f(waterSunLightDirectionU, sunLightDirection.x, sunLightDirection.y, sunLightDirection.z);
@@ -316,6 +241,63 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glUniform1i(waterReflectTextureU, 1);
 
         gl.glBindVertexArray(waterVertexArray);
+        gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
+    }
+
+    private void drawSkybox(Matrix4fc projMatrix, Matrix4fc viewMatrix) {
+        GL2 gl = (GL2)GLContext.getCurrentGL();
+
+        Matrix4f modelMatrix = new Matrix4f().identity();
+        modelMatrix.scale(1000.0f);
+
+        int skyboxProjMatrixU = gl.glGetUniformLocation(skyboxShaderProgram, "u_projMatrix");
+        int skyboxModelViewMatrixU = gl.glGetUniformLocation(skyboxShaderProgram, "u_modelViewMatrix");
+        int skyboxTextureU = gl.glGetUniformLocation(skyboxShaderProgram, "u_skyboxTexture");
+
+        gl.glUseProgram(skyboxShaderProgram);
+
+        FloatBuffer matrixBuffer = Buffers.newDirectFloatBuffer(16);
+        viewMatrix.mul(modelMatrix, new Matrix4f()).get(matrixBuffer);
+        gl.glUniformMatrix4fv(skyboxModelViewMatrixU, 1, false, matrixBuffer);
+
+        projMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(skyboxProjMatrixU, 1, false, matrixBuffer);
+
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+        gl.glBindTexture(GL.GL_TEXTURE_CUBE_MAP, skyboxTexture.getTextureObject());
+        gl.glUniform1i(skyboxTextureU, 0);
+
+        gl.glBindVertexArray(skyboxVertexArray);
+        gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, skyboxIndexBuffer);
+        gl.glDrawElements(GL.GL_TRIANGLES, 36, GL.GL_UNSIGNED_INT, 0);
+    }
+
+    private void drawGeometry(Matrix4fc projMatrix, Matrix4fc viewMatrix) {
+        GL2 gl = (GL2)GLContext.getCurrentGL();
+
+        Matrix4f modelMatrix = new Matrix4f().identity();
+        modelMatrix.scale(128.0f);
+
+        int geometryProjMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_projMatrix");
+        int geometryModelViewMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_modelViewMatrix");
+        int geometryTextureU = gl.glGetUniformLocation(geometryShaderProgram, "u_colorTexture");
+        int geometrySunLightDirectionU = gl.glGetUniformLocation(geometryShaderProgram, "u_sunLightDirection");
+
+        gl.glUseProgram(geometryShaderProgram);
+
+        FloatBuffer matrixBuffer = Buffers.newDirectFloatBuffer(16);
+        viewMatrix.mul(modelMatrix, new Matrix4f()).get(matrixBuffer);
+        gl.glUniformMatrix4fv(geometryModelViewMatrixU, 1, false, matrixBuffer);
+
+        projMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(geometryProjMatrixU, 1, false, matrixBuffer);
+
+        gl.glUniform3f(geometrySunLightDirectionU, sunLightDirection.x, sunLightDirection.y, sunLightDirection.z);
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, groundTexture.getTextureObject());
+        gl.glUniform1i(geometryTextureU, 0);
+
+        gl.glBindVertexArray(groundVertexArray);
         gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
     }
 

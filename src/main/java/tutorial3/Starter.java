@@ -1,10 +1,11 @@
-package tutorial1;
+package tutorial3;
 
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureData;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3f;
@@ -13,6 +14,7 @@ import javax.swing.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import static java.awt.event.KeyEvent.VK_ESCAPE;
@@ -41,13 +43,24 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
     private int waterShaderProgram;
     private int waterVertexArray;
 
+    private int refractTextureId;
+    private int reflectTextureId;
+    private int refractFrameBuffer;
+    private int reflectFrameBuffer;
+
+    private float time;
+    private int[] noiseTextureIds;
+
     public Starter(int width, int height) {
-        super("Tutorial 1 - Water Geometry");
+        super("Tutorial 3 - Noise and Animation");
 
         this.sunLightDirection = new Vector3f(0.2f, 0.5f, -1.0f).normalize();
         this.camera = new Camera();
         this.camera.initialize(width, height);
         this.camera.moveUp(12.0f);
+
+        this.time = 0.0f;
+        this.noiseTextureIds = new int[4];
 
         this.keyDown = new boolean[256];
         this.canvas = new GLCanvas();
@@ -67,7 +80,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
     @Override
     public void init(GLAutoDrawable drawable) {
-        GL2 gl = (GL2) GLContext.getCurrentGL();
+        GL3 gl = (GL3) GLContext.getCurrentGL();
 
         // Global Settings
         gl.glEnable(GL.GL_DEPTH_TEST);
@@ -81,7 +94,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         // Load Shaders
         skyboxShaderProgram = Utils.createShader("target/classes/res/shaders/skybox.vs.glsl", "target/classes/res/shaders/skybox.fs.glsl");
         geometryShaderProgram = Utils.createShader("target/classes/tutorial0/geometry.vs.glsl", "target/classes/tutorial0/geometry.fs.glsl");
-        waterShaderProgram = Utils.createShader("target/classes/tutorial1/water.vs.glsl", "target/classes/tutorial1/water.fs.glsl");
+        waterShaderProgram = Utils.createShader("target/classes/tutorial3/water.vs.glsl", "target/classes/tutorial3/water.fs.glsl");
 
         // Initialize Skybox Geometry
         int[] bufferId = new int[1];
@@ -127,6 +140,57 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glBufferData(GL.GL_ARRAY_BUFFER, Utils.PLANE_POSITIONS.length * 4, Buffers.newDirectFloatBuffer(Utils.PLANE_POSITIONS), GL.GL_STATIC_DRAW);
         gl.glVertexAttribPointer(0, 3,  GL.GL_FLOAT, false, 3 * 4, 0);
         gl.glEnableVertexAttribArray(0);
+
+        // Initialize Refract Framebuffer
+        gl.glGenFramebuffers(1, bufferId, 0);
+        refractFrameBuffer = bufferId[0];
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, refractFrameBuffer);
+        gl.glGenTextures(1, bufferId, 0);
+        refractTextureId = bufferId[0];
+        gl.glBindTexture(GL.GL_TEXTURE_2D, refractTextureId);
+        gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, getWidth(), getHeight(), 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, null);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+        gl.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, refractTextureId, 0);
+        gl.glDrawBuffer(GL.GL_COLOR_ATTACHMENT0);
+
+        // Initialize Reflect Framebuffer
+        gl.glGenFramebuffers(1, bufferId, 0);
+        reflectFrameBuffer = bufferId[0];
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, reflectFrameBuffer);
+        gl.glGenTextures(1, bufferId, 0);
+        reflectTextureId = bufferId[0];
+        gl.glBindTexture(GL.GL_TEXTURE_2D, reflectTextureId);
+        gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, getWidth(), getHeight(), 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, null);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+        gl.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, reflectTextureId, 0);
+        gl.glDrawBuffer(GL.GL_COLOR_ATTACHMENT0);
+
+        // Initialize Noise Textures
+        for(int o=0; o<noiseTextureIds.length; ++o) {
+            Noise noise = new Noise();
+
+            int pow = (int)Math.pow(2, o);
+            ByteBuffer textureData = Buffers.newDirectByteBuffer(256 * 256 * 4);
+            for(int i=0; i<256; ++i) {
+                for(int j=0; j<256; ++j) {
+                    float normalHeight = noise.noise(i * pow / 32.0f, j * pow / 32.0f, 8 * pow) * 0.5f + 0.5f;
+                    byte val = (byte)(normalHeight * 256.0f);
+                    textureData.put(val).put(val).put(val).put((byte)255);
+                }
+            }
+            textureData.rewind();
+
+            gl.glGenTextures(1, bufferId, 0);
+            noiseTextureIds[o] = bufferId[0];
+            gl.glBindTexture(GL.GL_TEXTURE_2D, noiseTextureIds[o]);
+            gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, 256, 256, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, textureData);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
+        }
     }
 
     @Override
@@ -144,6 +208,32 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         Matrix4fc projMatrix = camera.getProjMatrix();
         Matrix4fc viewMatrix = new Matrix4f(camera.getViewMatrix());
 
+        Matrix4f reflectMatrix = new Matrix4f(
+                1.0f, 1.0f, 1.0f, 1.0f,
+                -1.0f, 1.0f, -1.0f, 1.0f,
+                1.0f, -1.0f, 1.0f, 1.0f,
+                1.0f, (2.0f * WATER_LEVEL / camera.getPosition().y()) - 1.0f, 1.0f, 1.0f);
+        Matrix4f reflectViewMatrix = viewMatrix.invert(new Matrix4f()).mulComponentWise(reflectMatrix).invert();
+
+        // Bind Reflect Framebuffer
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, reflectFrameBuffer);
+        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
+        gl.glViewport(0, 0, getWidth(), getHeight());
+
+        drawSkybox(projMatrix, reflectViewMatrix);
+        drawGeometry(projMatrix, reflectViewMatrix);
+
+        // Bind Refract Framebuffer
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, refractFrameBuffer);
+        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
+        gl.glViewport(0, 0, getWidth(), getHeight());
+
+        drawSkybox(projMatrix, viewMatrix);
+        drawGeometry(projMatrix, viewMatrix);
+
+        // Unbind Framebuffer
+        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
+
         // Clear Screen
         gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
 
@@ -160,6 +250,9 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         int waterModelMatrixU = gl.glGetUniformLocation(waterShaderProgram, "u_modelMatrix");
         int waterCameraPositionU = gl.glGetUniformLocation(waterShaderProgram, "u_cameraPosition");
         int waterSunLightDirectionU = gl.glGetUniformLocation(waterShaderProgram, "u_sunLightDirection");
+        int waterRefractTextureU = gl.glGetUniformLocation(waterShaderProgram, "u_refractTexture");
+        int waterReflectTextureU = gl.glGetUniformLocation(waterShaderProgram, "u_reflectTexture");
+        int waterTimeU = gl.glGetUniformLocation(waterShaderProgram, "u_time");
 
         gl.glUseProgram(waterShaderProgram);
 
@@ -175,9 +268,26 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
         gl.glUniform3f(waterCameraPositionU, camera.getPosition().x(), camera.getPosition().y(), camera.getPosition().z());
         gl.glUniform3f(waterSunLightDirectionU, sunLightDirection.x, sunLightDirection.y, sunLightDirection.z);
+        gl.glUniform1f(waterTimeU, time);
+
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, refractTextureId);
+        gl.glUniform1i(waterRefractTextureU, 0);
+        gl.glActiveTexture(GL.GL_TEXTURE1);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, reflectTextureId);
+        gl.glUniform1i(waterReflectTextureU, 1);
+
+        for(int i=0; i<noiseTextureIds.length; ++i) {
+            int waterNoiseTextureU = gl.glGetUniformLocation(waterShaderProgram, "u_noiseTexture[" + i + "]");
+            gl.glActiveTexture(GL.GL_TEXTURE2 + i);
+            gl.glBindTexture(GL.GL_TEXTURE_2D, noiseTextureIds[i]);
+            gl.glUniform1i(waterNoiseTextureU, 2 + i);
+        }
 
         gl.glBindVertexArray(waterVertexArray);
         gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);
+
+        time += 1.0f;
     }
 
     private void drawSkybox(Matrix4fc projMatrix, Matrix4fc viewMatrix) {

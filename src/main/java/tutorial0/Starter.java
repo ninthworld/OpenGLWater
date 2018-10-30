@@ -124,29 +124,34 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         camera.input(keyDown);
 
         // Camera Matrices
-        FloatBuffer projMatrixBuffer = Buffers.newDirectFloatBuffer(16);
-        camera.getProjMatrix().get(projMatrixBuffer);
-
-        Matrix4fc viewMatrix = camera.getViewMatrix();
-        Matrix4f modelMatrix = new Matrix4f().identity();
-        Matrix4f modelViewMatrix = new Matrix4f();
-        FloatBuffer modelViewMatrixBuffer = Buffers.newDirectFloatBuffer(16);
+        Matrix4fc projMatrix = camera.getProjMatrix();
+        Matrix4fc viewMatrix = new Matrix4f(camera.getViewMatrix());
 
         // Clear Screen
         gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
 
-        // Render Skybox
+        drawSkybox(projMatrix, viewMatrix);
+        drawGeometry(projMatrix, viewMatrix);
+    }
+
+    private void drawSkybox(Matrix4fc projMatrix, Matrix4fc viewMatrix) {
+        GL2 gl = (GL2)GLContext.getCurrentGL();
+
+        Matrix4f modelMatrix = new Matrix4f().identity();
+        modelMatrix.scale(1000.0f);
+
         int skyboxProjMatrixU = gl.glGetUniformLocation(skyboxShaderProgram, "u_projMatrix");
         int skyboxModelViewMatrixU = gl.glGetUniformLocation(skyboxShaderProgram, "u_modelViewMatrix");
         int skyboxTextureU = gl.glGetUniformLocation(skyboxShaderProgram, "u_skyboxTexture");
 
         gl.glUseProgram(skyboxShaderProgram);
-        gl.glUniformMatrix4fv(skyboxProjMatrixU, 1, false, projMatrixBuffer);
 
-        modelMatrix.scale(1000.0f);
-        viewMatrix.mul(modelMatrix, modelViewMatrix);
-        modelViewMatrix.get(modelViewMatrixBuffer);
-        gl.glUniformMatrix4fv(skyboxModelViewMatrixU, 1, false, modelViewMatrixBuffer);
+        FloatBuffer matrixBuffer = Buffers.newDirectFloatBuffer(16);
+        viewMatrix.mul(modelMatrix, new Matrix4f()).get(matrixBuffer);
+        gl.glUniformMatrix4fv(skyboxModelViewMatrixU, 1, false, matrixBuffer);
+
+        projMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(skyboxProjMatrixU, 1, false, matrixBuffer);
 
         gl.glActiveTexture(GL.GL_TEXTURE0);
         gl.glBindTexture(GL.GL_TEXTURE_CUBE_MAP, skyboxTexture.getTextureObject());
@@ -155,21 +160,27 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glBindVertexArray(skyboxVertexArray);
         gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, skyboxIndexBuffer);
         gl.glDrawElements(GL.GL_TRIANGLES, 36, GL.GL_UNSIGNED_INT, 0);
+    }
 
-        // Render Ground
+    private void drawGeometry(Matrix4fc projMatrix, Matrix4fc viewMatrix) {
+        GL2 gl = (GL2)GLContext.getCurrentGL();
+
+        Matrix4f modelMatrix = new Matrix4f().identity();
+        modelMatrix.scale(128.0f);
+
         int geometryProjMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_projMatrix");
         int geometryModelViewMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_modelViewMatrix");
         int geometryTextureU = gl.glGetUniformLocation(geometryShaderProgram, "u_colorTexture");
         int geometrySunLightDirectionU = gl.glGetUniformLocation(geometryShaderProgram, "u_sunLightDirection");
 
         gl.glUseProgram(geometryShaderProgram);
-        gl.glUniformMatrix4fv(geometryProjMatrixU, 1, false, projMatrixBuffer);
 
-        modelMatrix.identity();
-        modelMatrix.scale(128.0f);
-        viewMatrix.mul(modelMatrix, modelViewMatrix);
-        modelViewMatrix.get(modelViewMatrixBuffer);
-        gl.glUniformMatrix4fv(geometryModelViewMatrixU, 1, false, modelViewMatrixBuffer);
+        FloatBuffer matrixBuffer = Buffers.newDirectFloatBuffer(16);
+        viewMatrix.mul(modelMatrix, new Matrix4f()).get(matrixBuffer);
+        gl.glUniformMatrix4fv(geometryModelViewMatrixU, 1, false, matrixBuffer);
+
+        projMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(geometryProjMatrixU, 1, false, matrixBuffer);
 
         gl.glUniform3f(geometrySunLightDirectionU, sunLightDirection.x, sunLightDirection.y, sunLightDirection.z);
         gl.glActiveTexture(GL.GL_TEXTURE0);
