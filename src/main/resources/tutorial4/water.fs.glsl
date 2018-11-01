@@ -12,8 +12,8 @@ uniform sampler2D u_refractTexture;
 uniform sampler2D u_reflectTexture;
 uniform sampler2D u_noiseTexture[4];
 
-const vec3 skyColor = vec3(0.8, 0.85, 0.9);
-const vec3 waterColor = vec3(0.05, 0.25, 0.5);
+const vec3 skyColor = vec3(0.7, 0.85, 0.9);
+const vec3 waterColor = vec3(0.0, 0.25, 0.5);
 //const vec3 skyColor = vec3(0.95, 0.98, 1.0);
 //const vec3 waterColor = vec3(0.8, 0.9, 1.0);
 

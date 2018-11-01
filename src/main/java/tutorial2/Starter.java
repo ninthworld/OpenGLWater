@@ -46,7 +46,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
     private int reflectFrameBuffer;
 
     public Starter(int width, int height) {
-        super("Tutorial 2 - Reflection and Refraction");
+        super("Tutorial 2 - Reflection & Refraction");
 
         this.sunLightDirection = new Vector3f(0.2f, 0.5f, -1.0f).normalize();
         this.camera = new Camera();
