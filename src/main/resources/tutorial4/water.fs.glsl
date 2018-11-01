@@ -42,10 +42,12 @@ float getHeight(vec2 pos) {
     return f;
 }
 
+// From Dist(vec3 pos) at http://www.kevs3d.co.uk/dev/shaders/waves2.html
 float getDist(vec3 pos) {
    return dot(pos - vec3(0.0, -getHeight(pos.xz), 0.0), vec3(0.0, 1.0, 0.0));
 }
 
+// Modified from GetNormal(vec3 pos) at http://www.kevs3d.co.uk/dev/shaders/waves2.html
 vec3 getNormal(vec3 pos) {
     const vec2 delta = vec2(0.05, 0.0);
     vec3 n;

@@ -208,12 +208,18 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         Matrix4fc projMatrix = camera.getProjMatrix();
         Matrix4fc viewMatrix = new Matrix4f(camera.getViewMatrix());
 
-        Matrix4f reflectMatrix = new Matrix4f(
-                1.0f, 1.0f, 1.0f, 1.0f,
-                -1.0f, 1.0f, -1.0f, 1.0f,
-                1.0f, -1.0f, 1.0f, 1.0f,
-                1.0f, (2.0f * WATER_LEVEL / camera.getPosition().y()) - 1.0f, 1.0f, 1.0f);
-        Matrix4f reflectViewMatrix = viewMatrix.invert(new Matrix4f()).mulComponentWise(reflectMatrix).invert();
+        Matrix4f newRotation = new Matrix4f().identity().set(camera.getRotation());
+        newRotation.m10(-newRotation.m10());
+        newRotation.m12(-newRotation.m12());
+        newRotation.m21(-newRotation.m21());
+
+        Vector3f newPosition = new Vector3f(camera.getPosition());
+        newPosition.y = 2.0f * WATER_LEVEL - newPosition.y;
+
+        Matrix4f reflectViewMatrix = new Matrix4f().identity();
+        reflectViewMatrix.translate(newPosition);
+        reflectViewMatrix.mul(newRotation);
+        reflectViewMatrix.invert();
 
         // Bind Reflect Framebuffer
         gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, reflectFrameBuffer);
