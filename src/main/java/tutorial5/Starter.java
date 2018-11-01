@@ -99,7 +99,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
 
         // Load Shaders
         skyboxShaderProgram = Utils.createShader("target/classes/res/shaders/skybox.vs.glsl", "target/classes/res/shaders/skybox.fs.glsl");
-        geometryShaderProgram = Utils.createShader("target/classes/tutorial0/geometry.vs.glsl", "target/classes/tutorial0/geometry.fs.glsl");
+        geometryShaderProgram = Utils.createShader("target/classes/tutorial5/geometry.vs.glsl", "target/classes/tutorial5/geometry.fs.glsl");
         waterShaderProgram = Utils.createShader("target/classes/tutorial5/water.vs.glsl", "target/classes/tutorial5/water.fs.glsl");
         underwaterShaderProgram = Utils.createShader("target/classes/tutorial5/underwater.vs.glsl", "target/classes/tutorial5/underwater.fs.glsl");
 
@@ -400,23 +400,38 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         modelMatrix.scale(128.0f);
 
         int geometryProjMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_projMatrix");
-        int geometryModelViewMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_modelViewMatrix");
+        int geometryViewMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_viewMatrix");
+        int geometryModelMatrixU = gl.glGetUniformLocation(geometryShaderProgram, "u_modelMatrix");
         int geometryTextureU = gl.glGetUniformLocation(geometryShaderProgram, "u_colorTexture");
         int geometrySunLightDirectionU = gl.glGetUniformLocation(geometryShaderProgram, "u_sunLightDirection");
+        int geometryWaterLevelU = gl.glGetUniformLocation(geometryShaderProgram, "u_waterLevel");
+        int geometryTimeU = gl.glGetUniformLocation(geometryShaderProgram, "u_time");
 
         gl.glUseProgram(geometryShaderProgram);
 
         FloatBuffer matrixBuffer = Buffers.newDirectFloatBuffer(16);
-        viewMatrix.mul(modelMatrix, new Matrix4f()).get(matrixBuffer);
-        gl.glUniformMatrix4fv(geometryModelViewMatrixU, 1, false, matrixBuffer);
+        viewMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(geometryViewMatrixU, 1, false, matrixBuffer);
+
+        modelMatrix.get(matrixBuffer);
+        gl.glUniformMatrix4fv(geometryModelMatrixU, 1, false, matrixBuffer);
 
         projMatrix.get(matrixBuffer);
         gl.glUniformMatrix4fv(geometryProjMatrixU, 1, false, matrixBuffer);
 
+        gl.glUniform1f(geometryWaterLevelU, WATER_LEVEL);
+        gl.glUniform1f(geometryTimeU, time);
         gl.glUniform3f(geometrySunLightDirectionU, sunLightDirection.x, sunLightDirection.y, sunLightDirection.z);
         gl.glActiveTexture(GL.GL_TEXTURE0);
         gl.glBindTexture(GL.GL_TEXTURE_2D, groundTexture.getTextureObject());
         gl.glUniform1i(geometryTextureU, 0);
+
+        for(int i=0; i<noiseTextureIds.length; ++i) {
+            int geometryNoiseTextureU = gl.glGetUniformLocation(geometryShaderProgram, "u_noiseTexture[" + i + "]");
+            gl.glActiveTexture(GL.GL_TEXTURE1 + i);
+            gl.glBindTexture(GL.GL_TEXTURE_2D, noiseTextureIds[i]);
+            gl.glUniform1i(geometryNoiseTextureU, 1 + i);
+        }
 
         gl.glBindVertexArray(groundVertexArray);
         gl.glDrawArrays(GL.GL_TRIANGLES, 0, 6);

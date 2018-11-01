@@ -11,10 +11,10 @@ uniform sampler2D u_depthTexture;
 
 const float fogNear = 10.0;
 const float fogFar = 60.0;
-//const vec3 overlayColor = vec3(0.5, 0.6, 0.85);
-//const vec3 fogColor = vec3(0.1, 0.3, 0.55);
-const vec3 overlayColor = vec3(0.7, 0.8, 0.95);
-const vec3 fogColor = vec3(0.3, 0.5, 0.75);
+const vec3 overlayColor = vec3(0.5, 0.6, 0.85);
+const vec3 fogColor = vec3(0.1, 0.3, 0.55);
+//const vec3 overlayColor = vec3(0.7, 0.8, 0.95);
+//const vec3 fogColor = vec3(0.3, 0.5, 0.75);
 
 float normalDepth(float depthSample, float near, float far) {
     const float zNear = 0.1;
