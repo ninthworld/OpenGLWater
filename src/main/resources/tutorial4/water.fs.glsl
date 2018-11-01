@@ -5,6 +5,7 @@ in vec3 vs_position;
 
 out vec4 fs_color;
 
+uniform float u_waterLevel;
 uniform vec3 u_cameraPosition;
 uniform vec3 u_sunLightDirection;
 uniform float u_time;
@@ -73,7 +74,12 @@ void main() {
 
     float fresnel = pow(1.0 - dot(view, -normal), fresnelStrength);
     fresnel = clamp(0.0, 1.0, fresnel);
-    color += mix(refractColor * waterColor, reflectColor * skyColor, fresnel);
+    if(u_cameraPosition.y > u_waterLevel) {
+        color += mix(refractColor * waterColor, reflectColor * skyColor, fresnel);
+    }
+    else {
+        color += mix(reflectColor * waterColor, refractColor * skyColor, fresnel);
+    }
 
     float cosTheta = max(0.0, dot(normal, -u_sunLightDirection));
     vec3 finalColor = color * cosTheta;

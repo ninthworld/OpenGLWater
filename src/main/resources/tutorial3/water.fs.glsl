@@ -12,9 +12,14 @@ uniform sampler2D u_refractTexture;
 uniform sampler2D u_reflectTexture;
 uniform sampler2D u_noiseTexture[4];
 
-const vec3 waterColor = vec3(0.0, 0.1, 0.3);
-const vec3 specularColor = vec3(0.5);
-const float specularShininess = 128.0;
+const vec3 skyColor = vec3(0.7, 0.85, 0.9);
+const vec3 waterColor = vec3(0.0, 0.25, 0.5);
+//const vec3 skyColor = vec3(0.95, 0.98, 1.0);
+//const vec3 waterColor = vec3(0.8, 0.9, 1.0);
+
+const float fresnelStrength = 5.0;
+const vec3 specularColor = vec3(1.0);
+const float specularShininess = 512.0;
 
 float noise(vec2 pos, int oct) {
     return texture(u_noiseTexture[oct], pos * pow(0.5, oct)).r;
@@ -37,10 +42,12 @@ float getHeight(vec2 pos) {
     return f;
 }
 
+// From Dist(vec3 pos) at http://www.kevs3d.co.uk/dev/shaders/waves2.html
 float getDist(vec3 pos) {
    return dot(pos - vec3(0.0, -getHeight(pos.xz), 0.0), vec3(0.0, 1.0, 0.0));
 }
 
+// Modified from GetNormal(vec3 pos) at http://www.kevs3d.co.uk/dev/shaders/waves2.html
 vec3 getNormal(vec3 pos) {
     const vec2 delta = vec2(0.05, 0.0);
     vec3 n;
@@ -60,12 +67,13 @@ void main() {
     distort.x = clamp(distort.x, 0.001, 0.999);
     distort.y = clamp(distort.y, 0.001, 0.999);
 
-    vec3 color = waterColor;
+    vec3 color = vec3(0.0);
     vec3 refractColor = texture(u_refractTexture, distort).rgb;
     vec3 reflectColor = texture(u_reflectTexture, distort * vec2(1.0, -1.0)).rgb;
 
-    float fresnel = dot(view, normal);
-    color += mix(reflectColor, refractColor, fresnel);
+    float fresnel = pow(1.0 - dot(view, -normal), fresnelStrength);
+    fresnel = clamp(0.0, 1.0, fresnel);
+    color += mix(refractColor * waterColor, reflectColor * skyColor, fresnel);
 
     float cosTheta = max(0.0, dot(normal, -u_sunLightDirection));
     vec3 finalColor = color * cosTheta;
