@@ -20,6 +20,15 @@ public class Utils {
 
     private static final int INFO_LOG_BYTE_LENGTH = 1024;
 
+    public static final float[] QUAD_POSITIONS = new float[] {
+            -1.0f, 1.0f,
+            -1.0f, -1.0f,
+            1.0f, -1.0f,
+            -1.0f, 1.0f,
+            1.0f, -1.0f,
+            1.0f, 1.0f
+    };
+
     public static final float[] PLANE_POSITIONS = new float[] {
             -1.0f, 0.0f, -1.0f,
             -1.0f, 0.0f, 1.0f,

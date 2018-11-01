@@ -299,9 +299,6 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
     private void drawSkybox(Matrix4fc projMatrix, Matrix4fc viewMatrix) {
         GL2 gl = (GL2)GLContext.getCurrentGL();
 
-        Matrix4f modelMatrix = new Matrix4f().identity();
-        modelMatrix.scale(1000.0f);
-
         int skyboxProjMatrixU = gl.glGetUniformLocation(skyboxShaderProgram, "u_projMatrix");
         int skyboxModelViewMatrixU = gl.glGetUniformLocation(skyboxShaderProgram, "u_modelViewMatrix");
         int skyboxTextureU = gl.glGetUniformLocation(skyboxShaderProgram, "u_skyboxTexture");
@@ -309,7 +306,7 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glUseProgram(skyboxShaderProgram);
 
         FloatBuffer matrixBuffer = Buffers.newDirectFloatBuffer(16);
-        viewMatrix.mul(modelMatrix, new Matrix4f()).get(matrixBuffer);
+        viewMatrix.get(matrixBuffer);
         gl.glUniformMatrix4fv(skyboxModelViewMatrixU, 1, false, matrixBuffer);
 
         projMatrix.get(matrixBuffer);
@@ -319,9 +316,11 @@ public class Starter extends JFrame implements GLEventListener, KeyListener {
         gl.glBindTexture(GL.GL_TEXTURE_CUBE_MAP, skyboxTexture.getTextureObject());
         gl.glUniform1i(skyboxTextureU, 0);
 
+        gl.glDisable(GL.GL_DEPTH_TEST);
         gl.glBindVertexArray(skyboxVertexArray);
         gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, skyboxIndexBuffer);
         gl.glDrawElements(GL.GL_TRIANGLES, 36, GL.GL_UNSIGNED_INT, 0);
+        gl.glEnable(GL.GL_DEPTH_TEST);
     }
 
     private void drawGeometry(Matrix4fc projMatrix, Matrix4fc viewMatrix) {

@@ -1,4 +1,4 @@
-package tutorial4;
+package tutorial5;
 
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL;
